@@ -1,0 +1,10 @@
+# Blender v2.70 (sub 0) OBJ File: ''
+# www.blender.org
+mtllib bispo.mtl
+o Line02
+v -0.000979 0.000524 -0.000000
+v 0.194479 0.000524 -0.038879
+v 0.198308 0.000524 -0.000000
+usemtl wire_255255255
+s off
+f 1// 2// 3//
