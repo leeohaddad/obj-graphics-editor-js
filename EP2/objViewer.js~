@@ -1,8 +1,10 @@
 /*
- * EP1 de Computação Gráfica
+ * EP2 de Computação Gráfica
  * Professor Marcel Parolin Jackowski
  * Aluno Leonardo Haddad Carlos nºUSP 7295361
  */
+
+var translateFactor = 0;
 
 var program;
 var canvas;
@@ -68,10 +70,11 @@ var zfar = 100.0;
 
 var flag = true;
 
-var objectDescription = undefined;
+var objectDescriptions = [];
 var fileHasNormals;
 var shadingModeSelector;
 var scaleFactor = 1.0;
+var loadedObj = false;
 
 // generate a quadrilateral with triangles
 function quad(a, b, c, d) {
@@ -213,8 +216,13 @@ function moveToCenterOfCanvas(verticesList) {
     return applyTransformationTo(translateMatrix,verticesList);
 }
 
-function toggleShading() {
-    drawObj(objectDescription);
+function drawObjs() {
+    pointsArray = [];
+    normalsArray = [];
+    numVertices = 0;
+    objectDescriptions.forEach(function(objectDescription){
+        drawObj(objectDescription);
+    });
 }
 
 function drawObj(parametersArray) {
@@ -223,8 +231,8 @@ function drawObj(parametersArray) {
     var faceDefinitions = parametersArray[2];
     var smoothNormalsList = parametersArray[3];
     var smoothFaceDefinitions = parametersArray[4];
-    pointsArray = [];
-    normalsArray = [];
+    if (!loadedObj) pointsArray = [];
+    if (!loadedObj) normalsArray = [];
     if (shadingModeSelector.value == "smoothShading")
         smoothFaceDefinitions.forEach(function(smoothFaceDefinition){
             var vertexDefinition = smoothFaceDefinition[0];
@@ -260,8 +268,10 @@ function drawObj(parametersArray) {
             triangularFace([faceVertices,fileFaceVerticesNormals]);
         });
     else console.log("Error: shading mode unknown!");
-    numVertices = 3 * faceDefinitions.length;
+    if (!loadedObj) numVertices = 0;
+    numVertices = numVertices + 3 * faceDefinitions.length;
     createBuffers();
+    loadedObj = true;
 }
 
 window.onload = function init() {
@@ -303,7 +313,7 @@ window.onload = function init() {
     document.getElementById("ButtonY").onclick = function(){axis = yAxis;};
     document.getElementById("ButtonZ").onclick = function(){axis = zAxis;};
     document.getElementById("ButtonT").onclick = function(){flag = !flag;};
-    document.getElementById("ShadingMode").onchange = function(){toggleShading()};
+    document.getElementById("ShadingMode").onchange = function(){drawObjs()};
 
     document.getElementById('files').onchange = function (evt) {
         // load OBJ file and display
@@ -313,16 +323,25 @@ window.onload = function init() {
             fileReader.onload = function(e) {
                 shadingModeSelector = document.getElementById( "ShadingMode" );
                 shadingModeSelector.style.visibility="visible";
-                objectDescription = loadObject(e.target.result);
+                var objectDescription = loadObject(e.target.result);
+
+		// temporary code: translating objects at beginning
+    		var translateMatrix = translate(translateFactor,translateFactor,translateFactor);
+    		objectDescription[0] = applyTransformationTo(translateMatrix,objectDescription[0]);
+		// temporary code: translating objects at beginning
+
                 fileHasNormals = objectDescription[5];
                 if (!fileHasNormals) {
+                    //TODO: review this logic for multiple objs.
                     shadingModeSelector.removeChild(shadingModeSelector[0]);
                     console.log("File does not have normal vertices!");
                 }
                 drawObj(objectDescription);
+                objectDescriptions.push(objectDescription);
             }
         }
         fileReader.readAsText(file);
+        document.getElementById('files').value = "";
     };
 
     gl.uniform4fv(gl.getUniformLocation(program, "ambientProduct"),
@@ -340,19 +359,22 @@ window.onload = function init() {
     resizeCanvas();
     render();
 }
-
+var doit = true;
 var render = function() {
             
     gl.clear( gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
             
-    if (flag) theta[axis] += 2.0;
-            
+    //if (flag) theta[axis] += 2.0;
+    if (doit) theta[xAxis] += 12.0;
+    if (doit) theta[yAxis] += 12.0;
+    if (doit) theta[zAxis] += 12.0;
+    doit = false;
+
     eye = vec3(cradius * Math.sin(ctheta) * Math.cos(cphi),
                cradius * Math.sin(ctheta) * Math.sin(cphi), 
                cradius * Math.cos(ctheta));
 
     modelViewMatrix = lookAt(eye, at, up);
-              
 
     modelViewMatrix = mult(modelViewMatrix, rotate(theta[xAxis], [1, 0, 0] ));
     modelViewMatrix = mult(modelViewMatrix, rotate(theta[yAxis], [0, 1, 0] ));
@@ -389,12 +411,14 @@ function createBuffers(points, normals) {
 
 function loadObject(data) {
 
-    // converts strings into array of vertex and normal vectors
+    // convert strings into array of vertex and normal vectors
     var result = loadObjFile(data);
-
-    // applies transformation to the object so that he is centered at the origin
+	
+    // resize canvas
     resizeCanvas();
     // result[0] = testFitInCanvas(result[0]);
+
+    // apply transformation to the object so that he is centered at the origin
     result[0] = moveToCenterOfCanvas(result[0]);
     
     return result;

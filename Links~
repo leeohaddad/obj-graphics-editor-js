@@ -9,10 +9,5 @@ http://www.physics.nyu.edu/grierlab/idl_html_help/obj_transform12.html
 Cross Product:
 http://en.wikipedia.org/wiki/Cross_product
 
-Perspective:
-http://webglfundamentals.org/webgl/lessons/webgl-3d-perspective.html
-
-Ray & Intersection:
+Ray:
 http://stackoverflow.com/questions/7364693/how-to-get-object-in-webgl-3d-space-from-a-mouse-click-coordinate
-http://blog.tempt3d.com/2013/11/ray-intersections-in-webgl.html
-https://github.com/sinisterchipmunk/jax/blob/5d392c9d67cb9ae5623dc03846027c473f625925/src/jax/webgl/world.js#L82

@@ -1,0 +1,20 @@
+ - Behavior for Shading: all? One By One (on select)?
+
+ - Perspective Camera:
+
+function applyPerspective(verticesList) {
+    var newVerticesList = [];
+    verticesList.forEach(function(vertex){
+        //console.log(vertex);
+        //vertex.w = vertex.z;
+        if (vertex.z != 0)
+        {
+            var newVertex = vertex;
+            newVertex.x = newVertex.x/newVertex.z;
+            newVertex.y = newVertex.y/newVertex.z;
+            newVerticesList.push(newVertex);
+        }
+        else newVerticesList.push(vertex);
+    });
+    return newVerticesList;
+}

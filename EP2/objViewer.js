@@ -4,6 +4,8 @@
  * Aluno Leonardo Haddad Carlos nºUSP 7295361
  */
 
+var translateFactor = 0;
+
 var program;
 var canvas;
 var gl;
@@ -214,14 +216,16 @@ function moveToCenterOfCanvas(verticesList) {
     return applyTransformationTo(translateMatrix,verticesList);
 }
 
-function toggleShading() {
+function drawObjs() {
+    pointsArray = [];
+    normalsArray = [];
+    numVertices = 0;
     objectDescriptions.forEach(function(objectDescription){
         drawObj(objectDescription);
     });
 }
 
 function drawObj(parametersArray) {
-    console.log("MyBool: " + loadedObj);
     var verticesList = parametersArray[0];
     var normalsList = parametersArray[1];
     var faceDefinitions = parametersArray[2];
@@ -309,7 +313,7 @@ window.onload = function init() {
     document.getElementById("ButtonY").onclick = function(){axis = yAxis;};
     document.getElementById("ButtonZ").onclick = function(){axis = zAxis;};
     document.getElementById("ButtonT").onclick = function(){flag = !flag;};
-    document.getElementById("ShadingMode").onchange = function(){toggleShading()};
+    document.getElementById("ShadingMode").onchange = function(){drawObjs()};
 
     document.getElementById('files').onchange = function (evt) {
         // load OBJ file and display
@@ -320,6 +324,12 @@ window.onload = function init() {
                 shadingModeSelector = document.getElementById( "ShadingMode" );
                 shadingModeSelector.style.visibility="visible";
                 var objectDescription = loadObject(e.target.result);
+
+		// temporary code: translating objects at beginning
+    		var translateMatrix = translate(translateFactor,translateFactor,translateFactor+=0.1);
+    		objectDescription[0] = applyTransformationTo(translateMatrix,objectDescription[0]);
+		// temporary code: translating objects at beginning
+
                 fileHasNormals = objectDescription[5];
                 if (!fileHasNormals) {
                     //TODO: review this logic for multiple objs.
@@ -331,6 +341,7 @@ window.onload = function init() {
             }
         }
         fileReader.readAsText(file);
+        document.getElementById('files').value = "";
     };
 
     gl.uniform4fv(gl.getUniformLocation(program, "ambientProduct"),
@@ -364,7 +375,6 @@ var render = function() {
                cradius * Math.cos(ctheta));
 
     modelViewMatrix = lookAt(eye, at, up);
-              
 
     modelViewMatrix = mult(modelViewMatrix, rotate(theta[xAxis], [1, 0, 0] ));
     modelViewMatrix = mult(modelViewMatrix, rotate(theta[yAxis], [0, 1, 0] ));
