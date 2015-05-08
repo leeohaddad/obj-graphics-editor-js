@@ -302,7 +302,7 @@ function cameraZoom (factor) {
         console.log("cameraZoom feature is available for perspective view only.");
         return;
     }
-    cradius = cradius - deltaScreen*cradius/50;
+    cradius = cradius - factor*cradius/50;
     // not allow camera to fluctuate across objects
     if (cradius < zfar) cradius = zfar;
     //TODO: manipulate near and far to avoid cutting the object out of the view plane.
@@ -417,7 +417,6 @@ function onKeyUp (event) {
     }
     //console.log("onKeyUp("+pressedKey+").");
     pressedKey = KEY_NONE;
-    //TODO: exit edit mode with ESC even when transformation exists!
 }
 
 function onMouseDown (event) {
@@ -626,6 +625,7 @@ window.onload = function init() {
         projectionModeSelector.value = "perspective";
     else
         projectionModeSelector.value = "orthographic";
+    setProjectionMode(projectionModeSelector);
 
     //document.getElementById("ButtonX").onclick = function(){axis = xAxis;};
     //document.getElementById("ButtonY").onclick = function(){axis = yAxis;};
@@ -698,7 +698,6 @@ var render = function() {
     modelViewMatrix = mult(modelViewMatrix, rotate(theta[yAxis], [0, 1, 0] ));
     modelViewMatrix = mult(modelViewMatrix, rotate(theta[zAxis], [0, 0, 1] ));
     
-    setProjectionMode(projectionModeSelector);
     if (perspective_view)
         projectionMatrix = perspective(45, canvas.width/canvas.height, znear, zfar);
     else

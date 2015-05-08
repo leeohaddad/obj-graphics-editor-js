@@ -26,15 +26,16 @@ Rastreador de Implementação:
     -> Mostrar os manipuladores para cada tipo de transformação: não implementado.
     -> Implementar a transformação de Escala: implementado completamente.
     -> Implementar a transformação de Translação: implementado completamente.
-    -> Implementar a transformação de Rotação: implementado parcialmente.
-    -> Possibilitar as rotações e zoom da câmera através de trackball virtual: implementado parcialmente (**).
+    -> Implementar a transformação de Rotação: implementado parcialmente (**).
+    -> Possibilitar as rotações e zoom da câmera através de trackball virtual: implementado parcialmente (***).
     -> Controlar os planos ​near ​e ​far ​do volume de visualização: não implementado.
  - Funcionalidades complementares:
     -> Projeção perspectiva: implementado completamente.
     -> Remoção de objeto da cena: implementado completamente.
 
 (*): A seleção do objeto está implementada através de um botão e não do SHIFT+click. O objeto está sendo ressaltado corretamente (através de mudança de cor).
-(**): Apenas o trackball virtual do zoom da câmera está implementado por enquanto.
+//(**): A rotação funciona mas não utiliza Quatérnios, por enquanto.
+(***): Apenas o trackball virtual do zoom da câmera está implementado, por enquanto.
 
 Consolidação de transformações e cancelamento de seleção:
  - Na parte de transformações, um trecho do enunciado do EP ficou confuso para mim:
@@ -46,3 +47,6 @@ Consolidação de transformações e cancelamento de seleção:
  - Se o usuário pressionar a tecla ESC uma vez enquanto está fazendo uma transformação não consolidada (com o botão esquerdo do mouse pressionado), o software irá apenas cancelar a transformação, continuando no modo de edição, para que o usuário possa tentar fazer a transformação novamente sem precisar entrar no modo de edição de novo.
  - Nesse caso, para sair do modo de edição e cancelar a seleção, o usuário deverá apertar a tecla ESC mais uma vez.
  - Caso o usuário aperte a tecla ESC sem estar no meio de uma transformação não consolidada, o software cancelará o modo de edĩção e a seleção sem a necessidade de apertar a tecla ESC pela segunda vez.
+
+
+ //TODO: Fix camera zoom!
