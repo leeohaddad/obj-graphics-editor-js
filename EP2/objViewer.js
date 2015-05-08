@@ -25,9 +25,6 @@ var vertices = [
         vec4( 0.5, -0.5, -0.5, 1.0 )
     ];
 
-var defaultColor = vec4( 0.0,  0.0,  0.0, 1.0 );
-var highlightedColor = vec4( 0.0,  1.0,  0.5, 1.0 );
-
 var lightPosition = vec4( 10.0, 10.0, 10.0, 0.0 );
 var lightAmbient = vec4( 0.2, 0.2, 0.2, 1.0 );
 var lightDiffuse = vec4( 1.0, 1.0, 1.0, 1.0 );
@@ -82,6 +79,14 @@ var FILE_HAS_NORMALS = 5;
 var SCALE = 6;
 var TRANSLATION = 7;
 var ROTATION = 8;
+var TR_NONE = -1;
+var TR_SCALE = 0;
+var TR_TRANSLATION = 1;
+var TR_ROTATION = 2;
+var AXIS_NONE = -1;
+var AXIS_X = 0;
+var AXIS_Y = 1;
+var AXIS_Z = 2;
 var VERTICES_DEF = 0;
 var FILE_NORMALS_DEF = 1;
 var CALCULATED_NORMALS_DEF = 2;
@@ -98,12 +103,18 @@ var objectDescriptions = [];
 var fileHasNormals;
 var shadingModeSelector;
 var scaleFactor = 1.0;
+var translateFactor = 0.0; //TODO: removeme (from here and from obj.onload)
 var loadedObj = false;
 var perspective_view = true;
 var configuredPerspectiveCamera = false;
 var mouse_button_pressed = MOUSE_NONE;
 var currentScreenX = undefined;
 var currentScreenY = undefined;
+var defaultColor = vec4( 0.0,  0.0,  0.0, 1.0 );
+var highlightedColor = vec4( 0.0,  1.0,  0.5, 1.0 );
+var selectedObject = -1;
+var selectedTransformation = TR_NONE;
+var selectedAxis = AXIS_NONE;
 
 // generate a quadrilateral with triangles
 function quad(a, b, c, d) {
@@ -280,7 +291,16 @@ function onMouseUp (event) {
     if (mouse_button_pressed == event.button) mouse_button_pressed = MOUSE_NONE;
 }
 
-function drawObj(parametersArray) {
+function toggleObjectSelection ()
+{
+    selectedObject++;
+    if (selectedObject >= objectDescriptions.length) selectedObject = -1;
+    drawObjs();
+    selectedTransformation = TR_NONE;
+    selectedAxis = AXIS_NONE;
+}
+
+function drawObj(parametersArray, color) {
     var verticesList = parametersArray[VERTICES_LIST];
     var normalsList = parametersArray[NORMALS_LIST];
     var faceDefinitions = parametersArray[FACE_DEFINITIONS];
@@ -298,7 +318,7 @@ function drawObj(parametersArray) {
             var smoothFaceVerticesNormals = [smoothNormalsList[smoothVertexNormalDefinition[0]],
                                              smoothNormalsList[smoothVertexNormalDefinition[1]],
                                              smoothNormalsList[smoothVertexNormalDefinition[2]]];
-            triangularFace([faceVertices,smoothFaceVerticesNormals],defaultColor);
+            triangularFace([faceVertices,smoothFaceVerticesNormals],color);
         });
     else if (shadingModeSelector.value == "flatShading")
         faceDefinitions.forEach(function(faceDefinition){
@@ -308,7 +328,7 @@ function drawObj(parametersArray) {
                                 verticesList[vertexDefinition[1]],
                                 verticesList[vertexDefinition[2]]];
             var flatFaceVerticesNormals = [flatVertexNormal,flatVertexNormal,flatVertexNormal];
-            triangularFace([faceVertices,flatFaceVerticesNormals],defaultColor);
+            triangularFace([faceVertices,flatFaceVerticesNormals],color);
         });
     else if (shadingModeSelector.value == "fileNormals")
         faceDefinitions.forEach(function(faceDefinition){
@@ -320,7 +340,7 @@ function drawObj(parametersArray) {
             var fileFaceVerticesNormals = [normalsList[fileVertexNormalDefinition[0]],
                                            normalsList[fileVertexNormalDefinition[1]],
                                            normalsList[fileVertexNormalDefinition[2]]];
-            triangularFace([faceVertices,fileFaceVerticesNormals],defaultColor);
+            triangularFace([faceVertices,fileFaceVerticesNormals],color);
         });
     else console.log("Error: shading mode unknown!");
     if (!loadedObj) numVertices = 0;
@@ -337,6 +357,7 @@ function drawObjs() {
     var objDescription;
     var objectScale, objectTranslation, objectRotation;
     var objScaleMatrix, objTranslationMatrix, objRotationMatrix;
+    var objectCounter = 0;
     objectDescriptions.forEach(function(objectDescription){
         var objDescription = objectDescription.slice();
         // rotation transformation
@@ -362,7 +383,11 @@ function drawObjs() {
             objDescription[VERTICES_LIST] = applyTransformationTo(objTranslationMatrix,objDescription[VERTICES_LIST]);
         }
         // draw object
-        drawObj(objDescription);
+        if (objectCounter != selectedObject)
+            drawObj(objDescription,defaultColor);
+        else
+            drawObj(objDescription,highlightedColor);
+        objectCounter++;
     });
 }
 
@@ -375,8 +400,8 @@ window.onload = function init() {
 
     // events
     canvas.onmousedown = onMouseDown;
-    document.onmouseup = onMouseUp;
     document.onmousemove = onMouseMove;
+    document.onmouseup = onMouseUp;
     
     // disable right click context menu inside canvas
     canvas.oncontextmenu = function (e) {
@@ -411,10 +436,11 @@ window.onload = function init() {
     modelViewMatrixLoc = gl.getUniformLocation(program, "modelViewMatrix");
     projectionMatrixLoc = gl.getUniformLocation(program, "projectionMatrix");
 
-    document.getElementById("ButtonX").onclick = function(){axis = xAxis;};
-    document.getElementById("ButtonY").onclick = function(){axis = yAxis;};
-    document.getElementById("ButtonZ").onclick = function(){axis = zAxis;};
-    document.getElementById("ButtonT").onclick = function(){flag = !flag;};
+    //document.getElementById("ButtonX").onclick = function(){axis = xAxis;};
+    //document.getElementById("ButtonY").onclick = function(){axis = yAxis;};
+    //document.getElementById("ButtonZ").onclick = function(){axis = zAxis;};
+    //document.getElementById("ButtonT").onclick = function(){flag = !flag;};
+    document.getElementById("ButtonS").onclick = function(){toggleObjectSelection()};
     document.getElementById("ShadingMode").onchange = function(){drawObjs()};
 
     document.getElementById('files').onchange = function (evt) {
@@ -423,7 +449,8 @@ window.onload = function init() {
         if (file) {
             var fileReader = new FileReader();
             fileReader.onload = function(e) {
-                shadingModeSelector = document.getElementById( "ShadingMode" );
+                document.getElementById("ButtonS").style.visibility="visible";
+                shadingModeSelector = document.getElementById("ShadingMode");
                 shadingModeSelector.style.visibility="visible";
                 var objectDescription = loadObject(e.target.result);
 
@@ -433,13 +460,13 @@ window.onload = function init() {
                     shadingModeSelector.removeChild(shadingModeSelector[0]);
                     console.log("File does not have normal vertices!");
                 }
-                drawObj(objectDescription);0
                 var objectScale = [1.0,1.0,1.0];
                 objectDescription.push(objectScale);
-                var objectTranslation = [0.0,0.0,0.0];
+                var objectTranslation = [translateFactor,translateFactor+=0.2,0.0];
                 objectDescription.push(objectTranslation);
                 var objectRotation = [0.0,0.0,0.0];
                 objectDescription.push(objectRotation);
+                drawObj(objectDescription,defaultColor);
                 objectDescriptions.push(objectDescription);
             }
         }
