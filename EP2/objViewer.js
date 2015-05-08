@@ -76,6 +76,22 @@ var shadingModeSelector;
 var scaleFactor = 1.0;
 var loadedObj = false;
 
+var VERTICES_LIST = 0;
+var NORMALS_LIST = 1;
+var FACE_DEFINITIONS = 2;
+var SMOOTH_NORMALS_LIST = 3;
+var SMOOTH_FACE_DEFINITIONS = 4;
+var FILE_HAS_NORMALS = 5;
+var SCALE = 6;
+var TRANSLATION = 7;
+var ROTATION = 8;
+var VERTICES_DEF = 0;
+var FILE_NORMALS_DEF = 1;
+var CALCULATED_NORMALS_DEF = 2;
+var SMOOTH_VERTICES_DEF = 0;
+var SMOOTH_NORMALS_DEF = 1;
+
+
 // generate a quadrilateral with triangles
 function quad(a, b, c, d) {
 
@@ -178,7 +194,7 @@ function resizeCanvas() {
     {
         newSize = window.innerWidth;
     }
-    else // if (window.innerWidth >= window.innerHeight)
+    else // (window.innerWidth >= window.innerHeight)
     {
         newSize = window.innerHeight;
     }
@@ -220,23 +236,50 @@ function drawObjs() {
     pointsArray = [];
     normalsArray = [];
     numVertices = 0;
+    var objDescription;
+    var objectScale, objectTranslation, objectRotation;
+    var objScaleMatrix, objTranslationMatrix, objRotationMatrix;
     objectDescriptions.forEach(function(objectDescription){
-        drawObj(objectDescription);
+        var objDescription = objectDescription.slice();
+        // rotation transformation
+        objectRotation = objectDescription[ROTATION];
+        if (objectRotation != (0.0,0.0,0.0)) {
+            objRotationMatrix = rotate(objectRotation[0],[1,0,0]);
+            objDescription[VERTICES_LIST] = applyTransformationTo(objRotationMatrix,objDescription[VERTICES_LIST]);
+            objRotationMatrix = rotate(objectRotation[1],[0,1,0]);
+            objDescription[VERTICES_LIST] = applyTransformationTo(objRotationMatrix,objDescription[VERTICES_LIST]);
+            objRotationMatrix = rotate(objectRotation[2],[0,0,1]);
+            objDescription[VERTICES_LIST] = applyTransformationTo(objRotationMatrix,objDescription[VERTICES_LIST]);
+        }
+        // scale transformation
+        objectScale = objectDescription[SCALE];
+        if (objectScale != (1.0,1.0,1.0)) {
+            objScaleMatrix = scale(objectScale[0],objectScale[1],objectScale[2]);
+            objDescription[VERTICES_LIST] = applyTransformationTo(objScaleMatrix,objDescription[VERTICES_LIST]);
+        }
+        // translation transformation
+        objectTranslation = objectDescription[TRANSLATION];
+        if (objectTranslation != (0.0,0.0,0.0)) {
+            objTranslationMatrix = translate(objectTranslation[0],objectTranslation[1],objectTranslation[2]);
+            objDescription[VERTICES_LIST] = applyTransformationTo(objTranslationMatrix,objDescription[VERTICES_LIST]);
+        }
+        // draw object
+        drawObj(objDescription);
     });
 }
 
 function drawObj(parametersArray) {
-    var verticesList = parametersArray[0];
-    var normalsList = parametersArray[1];
-    var faceDefinitions = parametersArray[2];
-    var smoothNormalsList = parametersArray[3];
-    var smoothFaceDefinitions = parametersArray[4];
+    var verticesList = parametersArray[VERTICES_LIST];
+    var normalsList = parametersArray[NORMALS_LIST];
+    var faceDefinitions = parametersArray[FACE_DEFINITIONS];
+    var smoothNormalsList = parametersArray[SMOOTH_NORMALS_LIST];
+    var smoothFaceDefinitions = parametersArray[SMOOTH_FACE_DEFINITIONS];
     if (!loadedObj) pointsArray = [];
     if (!loadedObj) normalsArray = [];
     if (shadingModeSelector.value == "smoothShading")
         smoothFaceDefinitions.forEach(function(smoothFaceDefinition){
             var vertexDefinition = smoothFaceDefinition[0];
-            var smoothVertexNormalDefinition = smoothFaceDefinition[1];
+            var smoothVertexNormalDefinition = smoothFaceDefinition[SMOOTH_NORMALS_DEF];
             var faceVertices = [verticesList[vertexDefinition[0]],
                                 verticesList[vertexDefinition[1]],
                                 verticesList[vertexDefinition[2]]];
@@ -247,8 +290,8 @@ function drawObj(parametersArray) {
         });
     else if (shadingModeSelector.value == "flatShading")
         faceDefinitions.forEach(function(faceDefinition){
-            var vertexDefinition = faceDefinition[0];
-            var flatVertexNormal = faceDefinition[2];
+            var vertexDefinition = faceDefinition[VERTICES_DEF];
+            var flatVertexNormal = faceDefinition[CALCULATED_NORMALS_DEF];
             var faceVertices = [verticesList[vertexDefinition[0]],
                                 verticesList[vertexDefinition[1]],
                                 verticesList[vertexDefinition[2]]];
@@ -257,8 +300,8 @@ function drawObj(parametersArray) {
         });
     else if (shadingModeSelector.value == "fileNormals")
         faceDefinitions.forEach(function(faceDefinition){
-            var vertexDefinition = faceDefinition[0];
-            var fileVertexNormalDefinition = faceDefinition[1];
+            var vertexDefinition = faceDefinition[VERTICES_DEF];
+            var fileVertexNormalDefinition = faceDefinition[FILE_NORMALS_DEF];
             var faceVertices = [verticesList[vertexDefinition[0]],
                                 verticesList[vertexDefinition[1]],
                                 verticesList[vertexDefinition[2]]];
@@ -325,18 +368,19 @@ window.onload = function init() {
                 shadingModeSelector.style.visibility="visible";
                 var objectDescription = loadObject(e.target.result);
 
-		// temporary code: translating objects at beginning
-    		var translateMatrix = translate(translateFactor,translateFactor,translateFactor+=0.1);
-    		objectDescription[0] = applyTransformationTo(translateMatrix,objectDescription[0]);
-		// temporary code: translating objects at beginning
-
-                fileHasNormals = objectDescription[5];
+                fileHasNormals = objectDescription[FILE_HAS_NORMALS];
                 if (!fileHasNormals) {
                     //TODO: review this logic for multiple objs.
                     shadingModeSelector.removeChild(shadingModeSelector[0]);
                     console.log("File does not have normal vertices!");
                 }
-                drawObj(objectDescription);
+                drawObj(objectDescription);0
+                var objectScale = [0.5,0.5,0.5];
+                objectDescription.push(objectScale);
+                var objectTranslation = [translateFactor,translateFactor,translateFactor+=0.2];
+                objectDescription.push(objectTranslation);
+                var objectRotation = [0.0,0.0,45.0];
+                objectDescription.push(objectRotation);
                 objectDescriptions.push(objectDescription);
             }
         }
@@ -419,7 +463,7 @@ function loadObject(data) {
     // result[0] = testFitInCanvas(result[0]);
 
     // apply transformation to the object so that he is centered at the origin
-    result[0] = moveToCenterOfCanvas(result[0]);
+    result[VERTICES_LIST] = moveToCenterOfCanvas(result[VERTICES_LIST]);
     
     return result;
 }
