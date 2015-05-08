@@ -402,8 +402,11 @@ function onMouseMove (event) {
     if (mouse_button_pressed == MOUSE_RIGHT) {
         if (currentScreenX != undefined && currentScreenY != undefined)
         {
+            // camera zoom control
             var deltaScreen = (event.screenX-currentScreenX)+(currentScreenY-event.screenY);
             cradius = cradius - deltaScreen*cradius/50;
+            // not allow camera to fluctuate across objects
+            if (cradius < zfar) cradius = zfar;
             //TODO: manipulate near and far to avoid cutting the object out of the view plane.
         }
     }
