@@ -70,12 +70,15 @@ var zfar = 100.0;
 
 var flag = true;
 
+// my vars
 var objectDescriptions = [];
 var fileHasNormals;
 var shadingModeSelector;
 var scaleFactor = 1.0;
 var loadedObj = false;
+var perspective_view = true;
 
+// indexers
 var VERTICES_LIST = 0;
 var NORMALS_LIST = 1;
 var FACE_DEFINITIONS = 2;
@@ -377,9 +380,9 @@ window.onload = function init() {
                 drawObj(objectDescription);0
                 var objectScale = [0.5,0.5,0.5];
                 objectDescription.push(objectScale);
-                var objectTranslation = [translateFactor,translateFactor,translateFactor+=0.2];
+                var objectTranslation = [0,0,8*(translateFactor+=0.2)];
                 objectDescription.push(objectTranslation);
-                var objectRotation = [0.0,0.0,45.0];
+                var objectRotation = [0.0,0.0,0.0];
                 objectDescription.push(objectRotation);
                 objectDescriptions.push(objectDescription);
             }
@@ -403,12 +406,13 @@ window.onload = function init() {
     resizeCanvas();
     render();
 }
-var doit = true;
+
+var doit = false;
 var render = function() {
             
     gl.clear( gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
             
-    //if (flag) theta[axis] += 2.0;
+    if (flag) theta[axis] += 2.0;
     if (doit) theta[xAxis] += 12.0;
     if (doit) theta[yAxis] += 12.0;
     if (doit) theta[zAxis] += 12.0;
@@ -425,6 +429,12 @@ var render = function() {
     modelViewMatrix = mult(modelViewMatrix, rotate(theta[zAxis], [0, 0, 1] ));
     
     projectionMatrix = ortho(xleft, xright, ybottom, ytop, znear, zfar);
+    if (perspective_view) {
+        cradius = 7.0;
+        znear = -1.0;
+        zfar = 1.0;
+        projectionMatrix = perspective(45, canvas.width/canvas.height, znear, zfar);
+    }
 
     gl.uniformMatrix4fv(modelViewMatrixLoc, false, flatten(modelViewMatrix));
     gl.uniformMatrix4fv(projectionMatrixLoc, false, flatten(projectionMatrix));
