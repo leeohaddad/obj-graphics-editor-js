@@ -4,8 +4,6 @@
  * Aluno Leonardo Haddad Carlos nºUSP 7295361
  */
 
-var translateFactor = 0;
-
 var program;
 var canvas;
 var gl;
@@ -14,6 +12,7 @@ var numVertices  = 36;
 
 var pointsArray = [];
 var normalsArray = [];
+var colorsArray = [];
 
 var vertices = [
         vec4( -0.5, -0.5,  0.5, 1.0 ),
@@ -25,6 +24,9 @@ var vertices = [
         vec4( 0.5,  0.5, -0.5, 1.0 ),
         vec4( 0.5, -0.5, -0.5, 1.0 )
     ];
+
+var defaultColor = vec4( 0.0,  0.0,  0.0, 1.0 );
+var highlightedColor = vec4( 0.0,  1.0,  0.5, 1.0 );
 
 var lightPosition = vec4( 10.0, 10.0, 10.0, 0.0 );
 var lightAmbient = vec4( 0.2, 0.2, 0.2, 1.0 );
@@ -112,21 +114,29 @@ function quad(a, b, c, d) {
 
      pointsArray.push(vertices[a]); 
      normalsArray.push(normal); 
+     colorsArray.push(defaultColor); 
      pointsArray.push(vertices[b]); 
-     normalsArray.push(normal); 
+     normalsArray.push(normal);  
+     colorsArray.push(defaultColor); 
      pointsArray.push(vertices[c]); 
-     normalsArray.push(normal);   
+     normalsArray.push(normal);    
+     colorsArray.push(defaultColor); 
      pointsArray.push(vertices[a]);  
-     normalsArray.push(normal); 
+     normalsArray.push(normal);  
+     colorsArray.push(defaultColor);  
      pointsArray.push(vertices[c]); 
-     normalsArray.push(normal); 
+     normalsArray.push(normal);  
+     colorsArray.push(defaultColor); 
      pointsArray.push(vertices[d]); 
      normalsArray.push(normal);    
+     colorsArray.push(defaultColor); 
 }
 
 // define faces of a cube
 function colorCube()
 {
+    vertices = applyTransformationTo(rotate(30.0,[1,0,0]),vertices);
+    vertices = applyTransformationTo(rotate(30.0,[0,1,0]),vertices);
     quad( 1, 0, 3, 2 );
     quad( 2, 3, 7, 6 );
     quad( 3, 0, 4, 7 );
@@ -135,8 +145,8 @@ function colorCube()
     quad( 5, 4, 0, 1 );
 }
 
-// generate a quadrilateral with triangles
-function triangularFace(face) {
+// generate a triangularFace with triangles
+function triangularFace(face, color) {
      var faceVertices = face[0];
      var faceVerticesNormals = face[1];
      var aVertex = faceVertices[0];
@@ -147,11 +157,14 @@ function triangularFace(face) {
      var cVertexNormal = faceVerticesNormals[2];
 
      pointsArray.push(aVertex); 
-     normalsArray.push(aVertexNormal); 
+     normalsArray.push(aVertexNormal);
+     colorsArray.push(color);
      pointsArray.push(bVertex); 
      normalsArray.push(bVertexNormal); 
+     colorsArray.push(color);
      pointsArray.push(cVertex); 
      normalsArray.push(cVertexNormal);
+     colorsArray.push(color);
 }
 
 // apply the transformation described by transformationMatrix into the object verticesList
@@ -250,7 +263,6 @@ function onMouseDown (event) {
 
 function onMouseMove (event) {
     if (mouse_button_pressed == MOUSE_RIGHT) {
-        //console.log("onMouseMove(rightButton) = (" + event.screenX + "," + event.screenY + ")");
         if (currentScreenY != undefined)
         {
             cradius = cradius + (event.screenY - currentScreenY) * cradius/50;
@@ -258,7 +270,7 @@ function onMouseMove (event) {
         }
     }
     else if (mouse_button_pressed == MOUSE_LEFT) {
-        console.log("onMouseMove(leftButton) = (" + event.screenX + "," + event.screenY + ")");
+        //TODO: rotate camera using quaternions.
     }
     currentScreenX = event.screenX;
     currentScreenY = event.screenY;
@@ -286,7 +298,7 @@ function drawObj(parametersArray) {
             var smoothFaceVerticesNormals = [smoothNormalsList[smoothVertexNormalDefinition[0]],
                                              smoothNormalsList[smoothVertexNormalDefinition[1]],
                                              smoothNormalsList[smoothVertexNormalDefinition[2]]];
-            triangularFace([faceVertices,smoothFaceVerticesNormals]);
+            triangularFace([faceVertices,smoothFaceVerticesNormals],defaultColor);
         });
     else if (shadingModeSelector.value == "flatShading")
         faceDefinitions.forEach(function(faceDefinition){
@@ -296,7 +308,7 @@ function drawObj(parametersArray) {
                                 verticesList[vertexDefinition[1]],
                                 verticesList[vertexDefinition[2]]];
             var flatFaceVerticesNormals = [flatVertexNormal,flatVertexNormal,flatVertexNormal];
-            triangularFace([faceVertices,flatFaceVerticesNormals]);
+            triangularFace([faceVertices,flatFaceVerticesNormals],defaultColor);
         });
     else if (shadingModeSelector.value == "fileNormals")
         faceDefinitions.forEach(function(faceDefinition){
@@ -308,7 +320,7 @@ function drawObj(parametersArray) {
             var fileFaceVerticesNormals = [normalsList[fileVertexNormalDefinition[0]],
                                            normalsList[fileVertexNormalDefinition[1]],
                                            normalsList[fileVertexNormalDefinition[2]]];
-            triangularFace([faceVertices,fileFaceVerticesNormals]);
+            triangularFace([faceVertices,fileFaceVerticesNormals],defaultColor);
         });
     else console.log("Error: shading mode unknown!");
     if (!loadedObj) numVertices = 0;
@@ -320,6 +332,7 @@ function drawObj(parametersArray) {
 function drawObjs() {
     pointsArray = [];
     normalsArray = [];
+    colorsArray = [];
     numVertices = 0;
     var objDescription;
     var objectScale, objectTranslation, objectRotation;
@@ -421,9 +434,9 @@ window.onload = function init() {
                     console.log("File does not have normal vertices!");
                 }
                 drawObj(objectDescription);0
-                var objectScale = [0.5,0.5,0.5];
+                var objectScale = [1.0,1.0,1.0];
                 objectDescription.push(objectScale);
-                var objectTranslation = [0,0,8*(translateFactor+=0.2)];
+                var objectTranslation = [0.0,0.0,0.0];
                 objectDescription.push(objectTranslation);
                 var objectRotation = [0.0,0.0,0.0];
                 objectDescription.push(objectRotation);
@@ -450,16 +463,11 @@ window.onload = function init() {
     render();
 }
 
-var doit = false;
 var render = function() {
             
     gl.clear( gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
             
-    if (flag) theta[axis] += 2.0;
-    if (doit) theta[xAxis] += 12.0;
-    if (doit) theta[yAxis] += 12.0;
-    if (doit) theta[zAxis] += 12.0;
-    doit = false;
+    //if (flag) theta[axis] += 2.0;
 
     eye = vec3(cradius * Math.sin(ctheta) * Math.cos(cphi),
                cradius * Math.sin(ctheta) * Math.sin(cphi), 
@@ -507,6 +515,14 @@ function createBuffers(points, normals) {
     var vPosition = gl.getAttribLocation(program, "vPosition");
     gl.vertexAttribPointer(vPosition, 4, gl.FLOAT, false, 0, 0);
     gl.enableVertexAttribArray(vPosition);
+   
+    var cBuffer = gl.createBuffer();
+    gl.bindBuffer(gl.ARRAY_BUFFER, cBuffer);
+    gl.bufferData(gl.ARRAY_BUFFER, flatten(colorsArray), gl.STATIC_DRAW);
+
+    var vColor = gl.getAttribLocation(program, "vColor");
+    gl.vertexAttribPointer(vColor, 4, gl.FLOAT, false, 0, 0);
+    gl.enableVertexAttribArray(vColor);
 }
 
 function loadObject(data) {
