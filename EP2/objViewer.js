@@ -290,8 +290,17 @@ function deleteObject (id) {
 function scaleObject(id, factor) {
     //if (selectObject == -1 || selectedTransformation != TR_SCALE || selectedAxis == AXIS_NONE) return;
     var currentScale = objectDescriptions[id][SCALE][selectedAxis];
+    if (currentScale==0) currentScale = 0.1;
     currentScale = currentScale + factor*currentScale/50;
     objectDescriptions[id][SCALE][selectedAxis] = currentScale;
+    drawObjs();
+}
+
+function translateObject(id, factor) {
+    //if (selectObject == -1 || selectedTransformation != TR_TRANSLATION || selectedAxis == AXIS_NONE) return;
+    var currentTranslation = objectDescriptions[id][TRANSLATION][selectedAxis];
+    currentTranslation = currentTranslation + factor/50;
+    objectDescriptions[id][TRANSLATION][selectedAxis] = currentTranslation;
     drawObjs();
 }
 
@@ -305,23 +314,26 @@ function onKeyDown (event) {
 function onKeyUp (event) {
     if (selectedObject == -1) return;
     if (pressedKey == KEY_NONE || pressedKey != event.keyCode) return;
-    if (selectedTransformation == TR_NONE) {
+    if (pressedKey == KEY_S) {
+        console.log("Scale Transformation activated.");
+        scaleBuffer = objectDescriptions[selectedObject][SCALE].slice();
+        selectedTransformation = TR_SCALE;
+        selectedAxis = AXIS_NONE;
+    }
+    else if (pressedKey == KEY_T) {
+        console.log("Translation Transformation activated.");
+        translationBuffer = objectDescriptions[selectedObject][TRANSLATION];
+        selectedTransformation = TR_TRANSLATION;
+        selectedAxis = AXIS_NONE;
+    }
+    else if (pressedKey == KEY_R) {
+        console.log("Rotation Transformation activated.");
+        rotationBuffer = objectDescriptions[selectedObject][ROTATION];
+        selectedTransformation = TR_ROTATION;
+        selectedAxis = AXIS_NONE;
+    }
+    else if (selectedTransformation == TR_NONE) {
         if (pressedKey == KEY_DELETE || pressedKey == KEY_X) deleteObject(selectedObject);
-        else if (pressedKey == KEY_S) {
-            console.log("Scale Transformation activated.");
-            scaleBuffer = objectDescriptions[selectedObject][SCALE].slice();
-            selectedTransformation = TR_SCALE;
-        }
-        else if (pressedKey == KEY_T) {
-            console.log("Translation Transformation activated.");
-            translationBuffer = objectDescriptions[selectedObject][TRANSLATION];
-            selectedTransformation = TR_TRANSLATION;
-        }
-        else if (pressedKey == KEY_R) {
-            console.log("Rotation Transformation activated.");
-            rotationBuffer = objectDescriptions[selectedObject][ROTATION];
-            selectedTransformation = TR_ROTATION;
-        }
         else if (pressedKey == KEY_ESC) selectObject(-1);
     }
     else if (selectedTransformation == TR_SCALE) {
@@ -341,6 +353,32 @@ function onKeyUp (event) {
             if (mouse_button_pressed == MOUSE_LEFT) {
                 console.log("Scale Transformation aborted!");
                 objectDescriptions[selectedObject][SCALE] = scaleBuffer.slice();
+            }
+            else {
+                selectedTransformation = TR_NONE;
+                selectedAxis = AXIS_NONE;
+                selectObject(-1);
+            }
+            drawObjs();
+        }
+    }
+    else if (selectedTransformation == TR_TRANSLATION) {
+        if (pressedKey == KEY_X && mouse_button_pressed == MOUSE_NONE) {
+            console.log("Translation Transformation configured to axis X.");
+            selectedAxis = AXIS_X;
+        }
+        else if (pressedKey == KEY_Y && mouse_button_pressed == MOUSE_NONE) {
+            console.log("Translation Transformation configured to axis Y.");
+            selectedAxis = AXIS_Y;
+        }
+        else if (pressedKey == KEY_Z && mouse_button_pressed == MOUSE_NONE) {
+            console.log("Translation Transformation configured to axis Z.");
+            selectedAxis = AXIS_Z;
+        }
+        else if (pressedKey == KEY_ESC) {
+            if (mouse_button_pressed == MOUSE_LEFT) {
+                console.log("Translation Transformation aborted!");
+                objectDescriptions[selectedObject][TRANSLATION] = translationBuffer.slice();
             }
             else {
                 selectedTransformation = TR_NONE;
@@ -381,6 +419,11 @@ function onMouseMove (event) {
                     scaleObject(selectedObject,deltaScreen);
                 }
             }
+            else if (selectedTransformation == TR_TRANSLATION) {
+                if (selectedAxis != AXIS_NONE) {
+                    translateObject(selectedObject,deltaScreen);
+                }
+            }
         }
     }
     currentScreenX = event.screenX;
@@ -391,6 +434,9 @@ function onMouseUp (event) {
     if (mouse_button_pressed == event.button) {
         if (selectedTransformation == TR_SCALE && mouse_button_pressed == MOUSE_LEFT) {
             scaleBuffer = objectDescriptions[selectedObject][SCALE].slice();
+        }
+        if (selectedTransformation == TR_TRANSLATION && mouse_button_pressed == MOUSE_LEFT) {
+            translationBuffer = objectDescriptions[selectedObject][TRANSLATION].slice();
         }
         mouse_button_pressed = MOUSE_NONE;
     }

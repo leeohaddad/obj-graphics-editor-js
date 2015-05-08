@@ -25,7 +25,7 @@ Rastreador de Implementação:
     -> Selecionar um objeto ao fazer SHIFT+click nele e ressaltá­-lo: implementado parcialmente (*).
     -> Mostrar os manipuladores para cada tipo de transformação: não implementado.
     -> Implementar a transformação de Escala: implementado completamente.
-    -> Implementar a transformação de Translação: implementado parcialmente.
+    -> Implementar a transformação de Translação: implementado completamente.
     -> Implementar a transformação de Rotação: implementado parcialmente.
     -> Possibilitar as rotações e zoom da câmera através de trackball virtual: implementado parcialmente (**).
     -> Controlar os planos ​near ​e ​far ​do volume de visualização: não implementado.
