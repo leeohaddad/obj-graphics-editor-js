@@ -94,6 +94,7 @@ var SMOOTH_VERTICES_DEF = 0;
 var SMOOTH_NORMALS_DEF = 1;
 var KEY_NONE = -1;
 var KEY_SHIFT = 16;
+var KEY_ESC = 27;
 var KEY_DELETE = 46;
 var KEY_R = 82;
 var KEY_S = 83;
@@ -125,6 +126,9 @@ var selectedObject = -1;
 var selectedTransformation = TR_NONE;
 var selectedAxis = AXIS_NONE;
 var pressedKey = KEY_NONE;
+var scaleBuffer = [1.0,1.0,1.0];
+var translationBuffer = [0.0,0.0,0.0];
+var rotationBuffer = [0.0,0.0,0.0];
 
 // generate a quadrilateral with triangles
 function quad(a, b, c, d) {
@@ -280,7 +284,14 @@ function moveToCenterOfCanvas(verticesList) {
 function deleteObject (id) {
     console.log("deleteObject("+id+")");
     objectDescriptions.splice(id,1);
-    if (selectedObject >= objectDescriptions.length) selectedObject = -1;
+    selectObject(-1);
+}
+
+function scaleObject(id, factor) {
+    //if (selectObject == -1 || selectedTransformation != TR_SCALE || selectedAxis == AXIS_NONE) return;
+    var currentScale = objectDescriptions[id][SCALE][selectedAxis];
+    currentScale = currentScale + factor*currentScale/50;
+    objectDescriptions[id][SCALE][selectedAxis] = currentScale;
     drawObjs();
 }
 
@@ -288,15 +299,60 @@ function onKeyDown (event) {
     if (selectedObject == -1) return;
     if (pressedKey != KEY_NONE && pressedKey != KEY_SHIFT && pressedKey != event.keyCode) return;
     pressedKey = event.keyCode;
-    console.log("onKeyDown("+pressedKey+")");
+    //console.log("onKeyDown("+pressedKey+")");
 }
 
 function onKeyUp (event) {
     if (selectedObject == -1) return;
     if (pressedKey == KEY_NONE || pressedKey != event.keyCode) return;
-    if (pressedKey == KEY_DELETE || pressedKey == KEY_X) deleteObject(selectedObject);
-    console.log("onKeyUp("+pressedKey+")");
+    if (selectedTransformation == TR_NONE) {
+        if (pressedKey == KEY_DELETE || pressedKey == KEY_X) deleteObject(selectedObject);
+        else if (pressedKey == KEY_S) {
+            console.log("Scale Transformation activated.");
+            scaleBuffer = objectDescriptions[selectedObject][SCALE].slice();
+            selectedTransformation = TR_SCALE;
+        }
+        else if (pressedKey == KEY_T) {
+            console.log("Translation Transformation activated.");
+            translationBuffer = objectDescriptions[selectedObject][TRANSLATION];
+            selectedTransformation = TR_TRANSLATION;
+        }
+        else if (pressedKey == KEY_R) {
+            console.log("Rotation Transformation activated.");
+            rotationBuffer = objectDescriptions[selectedObject][ROTATION];
+            selectedTransformation = TR_ROTATION;
+        }
+        else if (pressedKey == KEY_ESC) selectObject(-1);
+    }
+    else if (selectedTransformation == TR_SCALE) {
+        if (pressedKey == KEY_X && mouse_button_pressed == MOUSE_NONE) {
+            console.log("Scale Transformation configured to axis X.");
+            selectedAxis = AXIS_X;
+        }
+        else if (pressedKey == KEY_Y && mouse_button_pressed == MOUSE_NONE) {
+            console.log("Scale Transformation configured to axis Y.");
+            selectedAxis = AXIS_Y;
+        }
+        else if (pressedKey == KEY_Z && mouse_button_pressed == MOUSE_NONE) {
+            console.log("Scale Transformation configured to axis Z.");
+            selectedAxis = AXIS_Z;
+        }
+        else if (pressedKey == KEY_ESC) {
+            if (mouse_button_pressed == MOUSE_LEFT) {
+                console.log("Scale Transformation aborted!");
+                objectDescriptions[selectedObject][SCALE] = scaleBuffer.slice();
+            }
+            else {
+                selectedTransformation = TR_NONE;
+                selectedAxis = AXIS_NONE;
+                selectObject(-1);
+            }
+            drawObjs();
+        }
+    }
+    //console.log("onKeyUp("+pressedKey+").");
     pressedKey = KEY_NONE;
+    //TODO: exit edit mode with ESC even when transformation exists!
 }
 
 function onMouseDown (event) {
@@ -306,30 +362,51 @@ function onMouseDown (event) {
 
 function onMouseMove (event) {
     if (mouse_button_pressed == MOUSE_RIGHT) {
-        if (currentScreenY != undefined)
+        if (currentScreenX != undefined && currentScreenY != undefined)
         {
-            cradius = cradius + (event.screenY - currentScreenY) * cradius/50;
+            var deltaScreen = (event.screenX-currentScreenX)+(currentScreenY-event.screenY);
+            cradius = cradius - deltaScreen*cradius/50;
             //TODO: manipulate near and far to avoid cutting the object out of the view plane.
         }
     }
     else if (mouse_button_pressed == MOUSE_LEFT) {
-        //TODO: rotate camera using quaternions.
+        if (currentScreenX != undefined && currentScreenY != undefined)
+        {
+            var deltaScreen = (event.screenX-currentScreenX)+(currentScreenY-event.screenY);
+            if (selectedTransformation == TR_NONE) {
+                //TODO: rotate camera using quaternions.
+            }
+            else if (selectedTransformation == TR_SCALE) {
+                if (selectedAxis != AXIS_NONE) {
+                    scaleObject(selectedObject,deltaScreen);
+                }
+            }
+        }
     }
     currentScreenX = event.screenX;
     currentScreenY = event.screenY;
 }
 
 function onMouseUp (event) {
-    if (mouse_button_pressed == event.button) mouse_button_pressed = MOUSE_NONE;
+    if (mouse_button_pressed == event.button) {
+        if (selectedTransformation == TR_SCALE && mouse_button_pressed == MOUSE_LEFT) {
+            scaleBuffer = objectDescriptions[selectedObject][SCALE].slice();
+        }
+        mouse_button_pressed = MOUSE_NONE;
+    }
+}
+
+function selectObject(id) {
+    selectedObject = id;
+    if (selectedObject >= objectDescriptions.length) selectedObject = -1;
+    selectedTransformation = TR_NONE;
+    selectedAxis = AXIS_NONE;
+    drawObjs();
 }
 
 function toggleObjectSelection ()
 {
-    selectedObject++;
-    if (selectedObject >= objectDescriptions.length) selectedObject = -1;
-    drawObjs();
-    selectedTransformation = TR_NONE;
-    selectedAxis = AXIS_NONE;
+    selectObject(selectedObject+1);
 }
 
 function drawObj(parametersArray, color) {
