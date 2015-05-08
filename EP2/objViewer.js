@@ -92,6 +92,15 @@ var FILE_NORMALS_DEF = 1;
 var CALCULATED_NORMALS_DEF = 2;
 var SMOOTH_VERTICES_DEF = 0;
 var SMOOTH_NORMALS_DEF = 1;
+var KEY_NONE = -1;
+var KEY_SHIFT = 16;
+var KEY_DELETE = 46;
+var KEY_R = 82;
+var KEY_S = 83;
+var KEY_T = 84;
+var KEY_X = 88;
+var KEY_Y = 89;
+var KEY_Z = 90;
 
 // other constants (mouse events)
 var MOUSE_NONE = -1;
@@ -115,6 +124,7 @@ var highlightedColor = vec4( 0.0,  1.0,  0.5, 1.0 );
 var selectedObject = -1;
 var selectedTransformation = TR_NONE;
 var selectedAxis = AXIS_NONE;
+var pressedKey = KEY_NONE;
 
 // generate a quadrilateral with triangles
 function quad(a, b, c, d) {
@@ -267,6 +277,28 @@ function moveToCenterOfCanvas(verticesList) {
     return applyTransformationTo(translateMatrix,verticesList);
 }
 
+function deleteObject (id) {
+    console.log("deleteObject("+id+")");
+    objectDescriptions.splice(id,1);
+    if (selectedObject >= objectDescriptions.length) selectedObject = -1;
+    drawObjs();
+}
+
+function onKeyDown (event) {
+    if (selectedObject == -1) return;
+    if (pressedKey != KEY_NONE && pressedKey != KEY_SHIFT && pressedKey != event.keyCode) return;
+    pressedKey = event.keyCode;
+    console.log("onKeyDown("+pressedKey+")");
+}
+
+function onKeyUp (event) {
+    if (selectedObject == -1) return;
+    if (pressedKey == KEY_NONE || pressedKey != event.keyCode) return;
+    if (pressedKey == KEY_DELETE || pressedKey == KEY_X) deleteObject(selectedObject);
+    console.log("onKeyUp("+pressedKey+")");
+    pressedKey = KEY_NONE;
+}
+
 function onMouseDown (event) {
     if (mouse_button_pressed != MOUSE_NONE) return;
     mouse_button_pressed = event.button;
@@ -399,6 +431,8 @@ window.onload = function init() {
     if ( !gl ) { alert( "WebGL isn't available" ); }
 
     // events
+    document.onkeydown = onKeyDown;
+    document.onkeyup = onKeyUp;
     canvas.onmousedown = onMouseDown;
     document.onmousemove = onMouseMove;
     document.onmouseup = onMouseUp;
