@@ -235,42 +235,6 @@ function moveToCenterOfCanvas(verticesList) {
     return applyTransformationTo(translateMatrix,verticesList);
 }
 
-function drawObjs() {
-    pointsArray = [];
-    normalsArray = [];
-    numVertices = 0;
-    var objDescription;
-    var objectScale, objectTranslation, objectRotation;
-    var objScaleMatrix, objTranslationMatrix, objRotationMatrix;
-    objectDescriptions.forEach(function(objectDescription){
-        var objDescription = objectDescription.slice();
-        // rotation transformation
-        objectRotation = objectDescription[ROTATION];
-        if (objectRotation != (0.0,0.0,0.0)) {
-            objRotationMatrix = rotate(objectRotation[0],[1,0,0]);
-            objDescription[VERTICES_LIST] = applyTransformationTo(objRotationMatrix,objDescription[VERTICES_LIST]);
-            objRotationMatrix = rotate(objectRotation[1],[0,1,0]);
-            objDescription[VERTICES_LIST] = applyTransformationTo(objRotationMatrix,objDescription[VERTICES_LIST]);
-            objRotationMatrix = rotate(objectRotation[2],[0,0,1]);
-            objDescription[VERTICES_LIST] = applyTransformationTo(objRotationMatrix,objDescription[VERTICES_LIST]);
-        }
-        // scale transformation
-        objectScale = objectDescription[SCALE];
-        if (objectScale != (1.0,1.0,1.0)) {
-            objScaleMatrix = scale(objectScale[0],objectScale[1],objectScale[2]);
-            objDescription[VERTICES_LIST] = applyTransformationTo(objScaleMatrix,objDescription[VERTICES_LIST]);
-        }
-        // translation transformation
-        objectTranslation = objectDescription[TRANSLATION];
-        if (objectTranslation != (0.0,0.0,0.0)) {
-            objTranslationMatrix = translate(objectTranslation[0],objectTranslation[1],objectTranslation[2]);
-            objDescription[VERTICES_LIST] = applyTransformationTo(objTranslationMatrix,objDescription[VERTICES_LIST]);
-        }
-        // draw object
-        drawObj(objDescription);
-    });
-}
-
 function drawObj(parametersArray) {
     var verticesList = parametersArray[VERTICES_LIST];
     var normalsList = parametersArray[NORMALS_LIST];
@@ -318,6 +282,42 @@ function drawObj(parametersArray) {
     numVertices = numVertices + 3 * faceDefinitions.length;
     createBuffers();
     loadedObj = true;
+}
+
+function drawObjs() {
+    pointsArray = [];
+    normalsArray = [];
+    numVertices = 0;
+    var objDescription;
+    var objectScale, objectTranslation, objectRotation;
+    var objScaleMatrix, objTranslationMatrix, objRotationMatrix;
+    objectDescriptions.forEach(function(objectDescription){
+        var objDescription = objectDescription.slice();
+        // rotation transformation
+        objectRotation = objectDescription[ROTATION];
+        if (objectRotation != (0.0,0.0,0.0)) {
+            objRotationMatrix = rotate(objectRotation[0],[1,0,0]);
+            objDescription[VERTICES_LIST] = applyTransformationTo(objRotationMatrix,objDescription[VERTICES_LIST]);
+            objRotationMatrix = rotate(objectRotation[1],[0,1,0]);
+            objDescription[VERTICES_LIST] = applyTransformationTo(objRotationMatrix,objDescription[VERTICES_LIST]);
+            objRotationMatrix = rotate(objectRotation[2],[0,0,1]);
+            objDescription[VERTICES_LIST] = applyTransformationTo(objRotationMatrix,objDescription[VERTICES_LIST]);
+        }
+        // scale transformation
+        objectScale = objectDescription[SCALE];
+        if (objectScale != (1.0,1.0,1.0)) {
+            objScaleMatrix = scale(objectScale[0],objectScale[1],objectScale[2]);
+            objDescription[VERTICES_LIST] = applyTransformationTo(objScaleMatrix,objDescription[VERTICES_LIST]);
+        }
+        // translation transformation
+        objectTranslation = objectDescription[TRANSLATION];
+        if (objectTranslation != (0.0,0.0,0.0)) {
+            objTranslationMatrix = translate(objectTranslation[0],objectTranslation[1],objectTranslation[2]);
+            objDescription[VERTICES_LIST] = applyTransformationTo(objTranslationMatrix,objDescription[VERTICES_LIST]);
+        }
+        // draw object
+        drawObj(objDescription);
+    });
 }
 
 window.onload = function init() {
