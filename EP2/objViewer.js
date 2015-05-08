@@ -70,14 +70,6 @@ var zfar = 100.0;
 
 var flag = true;
 
-// my vars
-var objectDescriptions = [];
-var fileHasNormals;
-var shadingModeSelector;
-var scaleFactor = 1.0;
-var loadedObj = false;
-var perspective_view = true;
-
 // indexers
 var VERTICES_LIST = 0;
 var NORMALS_LIST = 1;
@@ -94,6 +86,22 @@ var CALCULATED_NORMALS_DEF = 2;
 var SMOOTH_VERTICES_DEF = 0;
 var SMOOTH_NORMALS_DEF = 1;
 
+// other constants (mouse events)
+var MOUSE_NONE = -1;
+var MOUSE_LEFT = 0;
+var MOUSE_RIGHT = 2;
+
+// my vars
+var objectDescriptions = [];
+var fileHasNormals;
+var shadingModeSelector;
+var scaleFactor = 1.0;
+var loadedObj = false;
+var perspective_view = true;
+var configuredPerspectiveCamera = false;
+var mouse_button_pressed = MOUSE_NONE;
+var currentScreenX = undefined;
+var currentScreenY = undefined;
 
 // generate a quadrilateral with triangles
 function quad(a, b, c, d) {
@@ -235,6 +243,31 @@ function moveToCenterOfCanvas(verticesList) {
     return applyTransformationTo(translateMatrix,verticesList);
 }
 
+function onMouseDown (event) {
+    if (mouse_button_pressed != MOUSE_NONE) return;
+    mouse_button_pressed = event.button;
+}
+
+function onMouseMove (event) {
+    if (mouse_button_pressed == MOUSE_RIGHT) {
+        //console.log("onMouseMove(rightButton) = (" + event.screenX + "," + event.screenY + ")");
+        if (currentScreenY != undefined)
+        {
+            cradius = cradius + (event.screenY - currentScreenY) * cradius/50;
+            //TODO: manipulate near and far to avoid cutting the object out of the view plane.
+        }
+    }
+    else if (mouse_button_pressed == MOUSE_LEFT) {
+        console.log("onMouseMove(leftButton) = (" + event.screenX + "," + event.screenY + ")");
+    }
+    currentScreenX = event.screenX;
+    currentScreenY = event.screenY;
+}
+
+function onMouseUp (event) {
+    if (mouse_button_pressed == event.button) mouse_button_pressed = MOUSE_NONE;
+}
+
 function drawObj(parametersArray) {
     var verticesList = parametersArray[VERTICES_LIST];
     var normalsList = parametersArray[NORMALS_LIST];
@@ -326,6 +359,16 @@ window.onload = function init() {
     
     gl = WebGLUtils.setupWebGL( canvas );
     if ( !gl ) { alert( "WebGL isn't available" ); }
+
+    // events
+    canvas.onmousedown = onMouseDown;
+    document.onmouseup = onMouseUp;
+    document.onmousemove = onMouseMove;
+    
+    // disable right click context menu inside canvas
+    canvas.oncontextmenu = function (e) {
+        e.preventDefault();
+    };
 
     // create viewport and clear color
     gl.viewport( 0, 0, canvas.width, canvas.height );
@@ -430,9 +473,12 @@ var render = function() {
     
     projectionMatrix = ortho(xleft, xright, ybottom, ytop, znear, zfar);
     if (perspective_view) {
-        cradius = 7.0;
-        znear = -1.0;
-        zfar = 1.0;
+        if (!configuredPerspectiveCamera) {
+            configuredPerspectiveCamera = true;
+            cradius = 7.0;
+            znear = -1.0;
+            zfar = 1.0;
+        }
         projectionMatrix = perspective(45, canvas.width/canvas.height, znear, zfar);
     }
 
