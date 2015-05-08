@@ -115,8 +115,8 @@ var shadingModeSelector;
 var scaleFactor = 1.0;
 var translateFactor = 0.0; //TODO: removeme (from here and from obj.onload)
 var loadedObj = false;
+var projectionModeSelector;
 var perspective_view = true;
-var configuredPerspectiveCamera = false;
 var mouse_button_pressed = MOUSE_NONE;
 var currentScreenX = undefined;
 var currentScreenY = undefined;
@@ -281,6 +281,33 @@ function moveToCenterOfCanvas(verticesList) {
     return applyTransformationTo(translateMatrix,verticesList);
 }
 
+function setProjectionMode (projectionMode) {
+    if (projectionMode.value == "perspective") {
+        perspective_view = true;
+        cradius = 7.0;
+        znear = -1.0;
+        zfar = 1.0;
+    }
+    else if (projectionMode.value == "orthographic") {
+        perspective_view = false;
+            cradius = 1.0;
+            znear = -100.0;
+            zfar = 100.0;
+    }
+    else console.log("Projection mode unknown: " + projectionMode.value + ".");
+}
+
+function cameraZoom (factor) {
+    if (!perspective_view) {
+        console.log("cameraZoom feature is available for perspective view only.");
+        return;
+    }
+    cradius = cradius - deltaScreen*cradius/50;
+    // not allow camera to fluctuate across objects
+    if (cradius < zfar) cradius = zfar;
+    //TODO: manipulate near and far to avoid cutting the object out of the view plane.
+}
+
 function deleteObject (id) {
     console.log("deleteObject("+id+")");
     objectDescriptions.splice(id,1);
@@ -404,10 +431,7 @@ function onMouseMove (event) {
         {
             // camera zoom control
             var deltaScreen = (event.screenX-currentScreenX)+(currentScreenY-event.screenY);
-            cradius = cradius - deltaScreen*cradius/50;
-            // not allow camera to fluctuate across objects
-            if (cradius < zfar) cradius = zfar;
-            //TODO: manipulate near and far to avoid cutting the object out of the view plane.
+            cameraZoom(deltaScreen);
         }
     }
     else if (mouse_button_pressed == MOUSE_LEFT) {
@@ -596,11 +620,19 @@ window.onload = function init() {
     modelViewMatrixLoc = gl.getUniformLocation(program, "modelViewMatrix");
     projectionMatrixLoc = gl.getUniformLocation(program, "projectionMatrix");
 
+
+    projectionModeSelector = document.getElementById("ProjectionMode");
+    if (perspective_view)
+        projectionModeSelector.value = "perspective";
+    else
+        projectionModeSelector.value = "orthographic";
+
     //document.getElementById("ButtonX").onclick = function(){axis = xAxis;};
     //document.getElementById("ButtonY").onclick = function(){axis = yAxis;};
     //document.getElementById("ButtonZ").onclick = function(){axis = zAxis;};
     //document.getElementById("ButtonT").onclick = function(){flag = !flag;};
     document.getElementById("ButtonS").onclick = function(){toggleObjectSelection()};
+    document.getElementById("ProjectionMode").onchange = function(){setProjectionMode(projectionModeSelector)};
     document.getElementById("ShadingMode").onchange = function(){drawObjs()};
 
     document.getElementById('files').onchange = function (evt) {
@@ -666,16 +698,11 @@ var render = function() {
     modelViewMatrix = mult(modelViewMatrix, rotate(theta[yAxis], [0, 1, 0] ));
     modelViewMatrix = mult(modelViewMatrix, rotate(theta[zAxis], [0, 0, 1] ));
     
-    projectionMatrix = ortho(xleft, xright, ybottom, ytop, znear, zfar);
-    if (perspective_view) {
-        if (!configuredPerspectiveCamera) {
-            configuredPerspectiveCamera = true;
-            cradius = 7.0;
-            znear = -1.0;
-            zfar = 1.0;
-        }
+    setProjectionMode(projectionModeSelector);
+    if (perspective_view)
         projectionMatrix = perspective(45, canvas.width/canvas.height, znear, zfar);
-    }
+    else
+        projectionMatrix = ortho(xleft, xright, ybottom, ytop, znear, zfar);
 
     gl.uniformMatrix4fv(modelViewMatrixLoc, false, flatten(modelViewMatrix));
     gl.uniformMatrix4fv(projectionMatrixLoc, false, flatten(projectionMatrix));
