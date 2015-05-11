@@ -127,6 +127,7 @@ var selectedTransformation = TR_NONE;
 var selectedAxis = AXIS_NONE;
 var pressedKey = KEY_NONE;
 var transformationBuffer = mat4();
+var translationLogMatrix = mat4();
 var filesInput;
 
 // generate a quadrilateral with triangles
@@ -280,7 +281,7 @@ function moveToCenterOfCanvas(verticesList) {
     return applyTransformationTo(translateMatrix,verticesList);
 }
 
-function setProjectionMode (projectionMode) {
+function setProjectionMode(projectionMode) {
     if (projectionMode.value == "perspective") {
         perspective_view = true;
         cradius = 7.0;
@@ -296,7 +297,7 @@ function setProjectionMode (projectionMode) {
     else console.log("Projection mode unknown: " + projectionMode.value + ".");
 }
 
-function cameraZoom (factor) {
+function cameraZoom(factor) {
     if (!perspective_view) {
         console.log("cameraZoom feature is available for perspective view only.");
         return;
@@ -307,7 +308,16 @@ function cameraZoom (factor) {
     //TODO: manipulate near and far to avoid cutting the object out of the view plane.
 }
 
-function deleteObject (id) {
+function copyMat4(sourceMatrix) {
+    var resultMatrix = mat4();
+    resultMatrix[0] = sourceMatrix[0].slice();
+    resultMatrix[1] = sourceMatrix[1].slice();
+    resultMatrix[2] = sourceMatrix[2].slice();
+    resultMatrix[3] = sourceMatrix[3].slice();
+    return resultMatrix;
+}
+
+function deleteObject(id) {
     console.log("deleteObject("+id+")");
     objectDescriptions.splice(id,1);
     selectObject(-1);
@@ -318,8 +328,10 @@ function scaleObject(id, factorX, factorY, factorZ) {
     if (factorX==0) return;
     if (factorY==0) return;
     if (factorZ==0) return;
+    currentTransformation = mult(inverseTranslation(translationLogMatrix),currentTransformation);
     var scaleMatrix = scale(factorX,factorY,factorZ);
     currentTransformation = mult(scaleMatrix,currentTransformation);
+    currentTransformation = mult(translationLogMatrix,currentTransformation);
     objectDescriptions[id][TR_MATRIX] = currentTransformation;
     drawObjs();
 }
@@ -327,14 +339,25 @@ function scaleObject(id, factorX, factorY, factorZ) {
 function translateObject(id, factorX, factorY, factorZ) {
     var currentTransformation = objectDescriptions[id][TR_MATRIX];
     var translationMatrix = translate(factorX,factorY,factorZ);
+    translationLogMatrix = mult(translationMatrix,translationLogMatrix);
     currentTransformation = mult(translationMatrix,currentTransformation);
     objectDescriptions[id][TR_MATRIX] = currentTransformation;
     drawObjs();
 }
 
+function inverseTranslation(translationMatrix) {
+    var inverseTranslationMatrix = copyMat4(translationMatrix);
+    inverseTranslationMatrix[0][3] = - inverseTranslationMatrix[0][3];
+    inverseTranslationMatrix[1][3] = - inverseTranslationMatrix[1][3];
+    inverseTranslationMatrix[2][3] = - inverseTranslationMatrix[2][3];
+    inverseTranslationMatrix.matrix = true;
+    return inverseTranslationMatrix;
+}
+
 //TODO: change logic to world space rotations
 function rotateObject(id, factorX, factorY, factorZ) {
     var currentTransformation = objectDescriptions[id][TR_MATRIX];
+    currentTransformation = mult(inverseTranslation(translationLogMatrix),currentTransformation);
     if (factorX != 0.0) {
         var rotationMatrixX = rotateWithQuaternion(factorX,[1,0,0]);
         currentTransformation = mult(rotationMatrixX,currentTransformation);
@@ -347,11 +370,12 @@ function rotateObject(id, factorX, factorY, factorZ) {
         var rotationMatrixZ = rotateWithQuaternion(factorZ,[0,0,1]);
         currentTransformation = mult(rotationMatrixZ,currentTransformation);
     }
+    currentTransformation = mult(translationLogMatrix,currentTransformation);
     objectDescriptions[id][TR_MATRIX] = currentTransformation;
     drawObjs();
 }
 
-function quaternion (angleDegrees, axis) {
+function quaternion(angleDegrees, axis) {
     if ( !Array.isArray(axis) ) {
         axis = [arguments[1], arguments[2], arguments[3]];
     }
@@ -365,7 +389,7 @@ function quaternion (angleDegrees, axis) {
     return [s,v];
 }
 
-function quaternionRotationMatrix (quaternion) {
+function quaternionRotationMatrix(quaternion) {
     var s = quaternion[0];
     var v = quaternion[1];
     var q0 = s;
@@ -381,19 +405,19 @@ function quaternionRotationMatrix (quaternion) {
     return result;
 }
 
-function rotateWithQuaternion (angle, axis) {
+function rotateWithQuaternion(angle, axis) {
     var q = quaternion(-angle,axis);
     var rotationMatrix = quaternionRotationMatrix(q);
     return rotationMatrix;
 }
 
-function onKeyDown (event) {
+function onKeyDown(event) {
     if (!loadedObj && event.keyCode!=KEY_L) return;
     if (pressedKey != KEY_NONE && pressedKey != KEY_SHIFT && pressedKey != event.keyCode) return;
     pressedKey = event.keyCode;
 }
 
-function onKeyUp (event) {
+function onKeyUp(event) {
     if (pressedKey == KEY_NONE || pressedKey != event.keyCode) return;
     if (pressedKey == KEY_N) {
         pressedKey = KEY_NONE;
@@ -410,19 +434,19 @@ function onKeyUp (event) {
     }
     if (pressedKey == KEY_S) {
         console.log("Scale Transformation activated.");
-        transformationBuffer = objectDescriptions[selectedObject][TR_MATRIX].slice();
+        transformationBuffer = copyMat4(objectDescriptions[selectedObject][TR_MATRIX]);
         selectedTransformation = TR_SCALE;
         selectedAxis = AXIS_NONE;
     }
     else if (pressedKey == KEY_T) {
         console.log("Translation Transformation activated.");
-        transformationBuffer = objectDescriptions[selectedObject][TR_MATRIX].slice();
+        transformationBuffer = copyMat4(objectDescriptions[selectedObject][TR_MATRIX]);
         selectedTransformation = TR_TRANSLATION;
         selectedAxis = AXIS_NONE;
     }
     else if (pressedKey == KEY_R) {
         console.log("Rotation Transformation activated.");
-        transformationBuffer = objectDescriptions[selectedObject][TR_MATRIX].slice();
+        transformationBuffer = copyMat4(objectDescriptions[selectedObject][TR_MATRIX]);
         selectedTransformation = TR_ROTATION;
         selectedAxis = AXIS_NONE;
     }
@@ -446,7 +470,7 @@ function onKeyUp (event) {
         else if (pressedKey == KEY_ESC) {
             if (mouse_button_pressed == MOUSE_LEFT) {
                 console.log("Scale Transformation aborted!");
-                objectDescriptions[selectedObject][TR_MATRIX] = transformationBuffer.slice();
+                objectDescriptions[selectedObject][TR_MATRIX] = copyMat4(transformationBuffer);
             }
             else {
                 selectedTransformation = TR_NONE;
@@ -472,7 +496,7 @@ function onKeyUp (event) {
         else if (pressedKey == KEY_ESC) {
             if (mouse_button_pressed == MOUSE_LEFT) {
                 console.log("Translation Transformation aborted!");
-                objectDescriptions[selectedObject][TR_MATRIX] = transformationBuffer.slice();
+                objectDescriptions[selectedObject][TR_MATRIX] = copyMat4(transformationBuffer);
             }
             else {
                 selectedTransformation = TR_NONE;
@@ -486,7 +510,7 @@ function onKeyUp (event) {
         if (pressedKey == KEY_ESC) {
             if (mouse_button_pressed == MOUSE_LEFT) {
                 console.log("Rotation Transformation aborted!");
-                objectDescriptions[selectedObject][TR_MATRIX] = transformationBuffer.slice();
+                objectDescriptions[selectedObject][TR_MATRIX] = copyMat4(transformationBuffer);
             }
             else {
                 selectedTransformation = TR_NONE;
@@ -500,12 +524,12 @@ function onKeyUp (event) {
     pressedKey = KEY_NONE;
 }
 
-function onMouseDown (event) {
+function onMouseDown(event) {
     if (mouse_button_pressed != MOUSE_NONE) return;
     mouse_button_pressed = event.button;
 }
 
-function onMouseMove (event) {
+function onMouseMove(event) {
     if (mouse_button_pressed == MOUSE_RIGHT) {
         if (currentScreenX != undefined && currentScreenY != undefined)
         {
@@ -548,16 +572,16 @@ function onMouseMove (event) {
     currentScreenY = event.screenY;
 }
 
-function onMouseUp (event) {
+function onMouseUp(event) {
     if (mouse_button_pressed == event.button) {
         if (selectedTransformation == TR_SCALE && mouse_button_pressed == MOUSE_LEFT) {
-            transformationBuffer = objectDescriptions[selectedObject][TR_MATRIX].slice();
+            transformationBuffer = copyMat4(objectDescriptions[selectedObject][TR_MATRIX]);
         }
         if (selectedTransformation == TR_TRANSLATION && mouse_button_pressed == MOUSE_LEFT) {
-            transformationBuffer = objectDescriptions[selectedObject][TR_MATRIX].slice();
+            transformationBuffer = copyMat4(objectDescriptions[selectedObject][TR_MATRIX]);
         }
         if (selectedTransformation == TR_ROTATION && mouse_button_pressed == MOUSE_LEFT) {
-            transformationBuffer = objectDescriptions[selectedObject][TR_MATRIX].slice();
+            transformationBuffer = copyMat4(objectDescriptions[selectedObject][TR_MATRIX]);
         }
         mouse_button_pressed = MOUSE_NONE;
     }
