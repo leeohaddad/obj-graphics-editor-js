@@ -76,9 +76,7 @@ var FACE_DEFINITIONS = 2;
 var SMOOTH_NORMALS_LIST = 3;
 var SMOOTH_FACE_DEFINITIONS = 4;
 var FILE_HAS_NORMALS = 5;
-var SCALE = 6;
-var TRANSLATION = 7;
-var ROTATION = 8;
+var TR_MATRIX = 6;
 var TR_NONE = -1;
 var TR_SCALE = 0;
 var TR_TRANSLATION = 1;
@@ -96,6 +94,8 @@ var KEY_NONE = -1;
 var KEY_SHIFT = 16;
 var KEY_ESC = 27;
 var KEY_DELETE = 46;
+var KEY_L = 76;
+var KEY_N = 78;
 var KEY_R = 82;
 var KEY_S = 83;
 var KEY_T = 84;
@@ -126,9 +126,8 @@ var selectedObject = -1;
 var selectedTransformation = TR_NONE;
 var selectedAxis = AXIS_NONE;
 var pressedKey = KEY_NONE;
-var scaleBuffer = [1.0,1.0,1.0];
-var translationBuffer = [0.0,0.0,0.0];
-var rotationBuffer = [0.0,0.0,0.0];
+var transformationBuffer = mat4();
+var filesInput;
 
 // generate a quadrilateral with triangles
 function quad(a, b, c, d) {
@@ -314,48 +313,116 @@ function deleteObject (id) {
     selectObject(-1);
 }
 
-function scaleObject(id, factor) {
-    //if (selectObject == -1 || selectedTransformation != TR_SCALE || selectedAxis == AXIS_NONE) return;
-    var currentScale = objectDescriptions[id][SCALE][selectedAxis];
-    if (currentScale==0) currentScale = 0.1;
-    currentScale = currentScale + factor*currentScale/50;
-    objectDescriptions[id][SCALE][selectedAxis] = currentScale;
+function scaleObject(id, factorX, factorY, factorZ) {
+    var currentTransformation = objectDescriptions[id][TR_MATRIX];
+    if (factorX==0) return;
+    if (factorY==0) return;
+    if (factorZ==0) return;
+    var scaleMatrix = scale(factorX,factorY,factorZ);
+    currentTransformation = mult(scaleMatrix,currentTransformation);
+    objectDescriptions[id][TR_MATRIX] = currentTransformation;
     drawObjs();
 }
 
-function translateObject(id, factor) {
-    //if (selectObject == -1 || selectedTransformation != TR_TRANSLATION || selectedAxis == AXIS_NONE) return;
-    var currentTranslation = objectDescriptions[id][TRANSLATION][selectedAxis];
-    currentTranslation = currentTranslation + factor/50;
-    objectDescriptions[id][TRANSLATION][selectedAxis] = currentTranslation;
+function translateObject(id, factorX, factorY, factorZ) {
+    var currentTransformation = objectDescriptions[id][TR_MATRIX];
+    var translationMatrix = translate(factorX,factorY,factorZ);
+    currentTransformation = mult(translationMatrix,currentTransformation);
+    objectDescriptions[id][TR_MATRIX] = currentTransformation;
     drawObjs();
+}
+
+//TODO: change logic to world space rotations
+function rotateObject(id, factorX, factorY, factorZ) {
+    var currentTransformation = objectDescriptions[id][TR_MATRIX];
+    if (factorX != 0.0) {
+        var rotationMatrixX = rotate(factorX,[1,0,0]);
+        currentTransformation = mult(rotationMatrixX,currentTransformation);
+    }
+    if (factorY != 0.0) {
+        var rotationMatrixY = rotate(factorY,[0,1,0]);
+        currentTransformation = mult(rotationMatrixY,currentTransformation);
+        }
+    if (factorZ != 0.0) {
+        var rotationMatrixZ = rotate(factorZ,[0,0,1]);
+        currentTransformation = mult(rotationMatrixZ,currentTransformation);
+    }
+    objectDescriptions[id][TR_MATRIX] = currentTransformation;
+    drawObjs();
+}
+
+function quaternion (angleDegrees, axis) {
+    if ( !Array.isArray(axis) ) {
+        axis = [arguments[1], arguments[2], arguments[3]];
+    }
+    halfAngle = radians(angleDegrees * 0.5);
+    var q0 = Math.cos(halfAngle);
+    var q1 = axis[AXIS_X] * Math.sin(halfAngle);
+    var q2 = axis[AXIS_Y] * Math.sin(halfAngle);
+    var q3 = axis[AXIS_Z] * Math.sin(halfAngle);
+    var s = q0;
+    var v = [q1,q2,q3];
+    return [s,v];
+}
+
+function quaternionRotationMatrix (quaternion) {
+    var s = quaternion[0];
+    var v = quaternion[1];
+    var q0 = s;
+    var q1 = v[AXIS_X];
+    var q2 = v[AXIS_Y];
+    var q3 = v[AXIS_Z];
+    var result = mat4(
+        vec4( 1-2*q2*q2-2*q3*q3, 2*q1*q2+2*q0*q3,   2*q1*q3-2*q0*q2,   0.0 ),
+        vec4( 2*q1*q2-2*q0*q3,   1-2*q1*q1-2*q3*q3, 2*q2*q3+2*q0*q1,   0.0 ),
+        vec4( 2*q1*q3+2*q0*q2,   2*q2*q3-2*q0*q1,   1-2*q1*q1-2*q2*q2, 0.0 ),
+        vec4()
+    );
+    return result;
+}
+
+function rotateWithQuat (vertices, angle, axis) {
+    var q = quaternion(angle,axis);
+    var rotationMatrix = quaternionRotationMatrix(q);
+    return applyTransformationTo(rotationMatrix,vertices);
 }
 
 function onKeyDown (event) {
-    if (selectedObject == -1) return;
+    if (!loadedObj && event.keyCode!=KEY_L) return;
     if (pressedKey != KEY_NONE && pressedKey != KEY_SHIFT && pressedKey != event.keyCode) return;
     pressedKey = event.keyCode;
-    //console.log("onKeyDown("+pressedKey+")");
 }
 
 function onKeyUp (event) {
-    if (selectedObject == -1) return;
     if (pressedKey == KEY_NONE || pressedKey != event.keyCode) return;
+    if (pressedKey == KEY_N) {
+        pressedKey = KEY_NONE;
+        toggleObjectSelection();
+        return;
+    }
+    else if (pressedKey == KEY_L) {
+        pressedKey = KEY_NONE;
+        filesInput.click();
+    }
+    if (selectedObject == -1) {
+        pressedKey = KEY_NONE;
+        return;
+    }
     if (pressedKey == KEY_S) {
         console.log("Scale Transformation activated.");
-        scaleBuffer = objectDescriptions[selectedObject][SCALE].slice();
+        transformationBuffer = objectDescriptions[selectedObject][TR_MATRIX].slice();
         selectedTransformation = TR_SCALE;
         selectedAxis = AXIS_NONE;
     }
     else if (pressedKey == KEY_T) {
         console.log("Translation Transformation activated.");
-        translationBuffer = objectDescriptions[selectedObject][TRANSLATION];
+        transformationBuffer = objectDescriptions[selectedObject][TR_MATRIX].slice();
         selectedTransformation = TR_TRANSLATION;
         selectedAxis = AXIS_NONE;
     }
     else if (pressedKey == KEY_R) {
         console.log("Rotation Transformation activated.");
-        rotationBuffer = objectDescriptions[selectedObject][ROTATION];
+        transformationBuffer = objectDescriptions[selectedObject][TR_MATRIX].slice();
         selectedTransformation = TR_ROTATION;
         selectedAxis = AXIS_NONE;
     }
@@ -379,7 +446,7 @@ function onKeyUp (event) {
         else if (pressedKey == KEY_ESC) {
             if (mouse_button_pressed == MOUSE_LEFT) {
                 console.log("Scale Transformation aborted!");
-                objectDescriptions[selectedObject][SCALE] = scaleBuffer.slice();
+                objectDescriptions[selectedObject][TR_MATRIX] = transformationBuffer.slice();
             }
             else {
                 selectedTransformation = TR_NONE;
@@ -405,7 +472,7 @@ function onKeyUp (event) {
         else if (pressedKey == KEY_ESC) {
             if (mouse_button_pressed == MOUSE_LEFT) {
                 console.log("Translation Transformation aborted!");
-                objectDescriptions[selectedObject][TRANSLATION] = translationBuffer.slice();
+                objectDescriptions[selectedObject][TR_MATRIX] = transformationBuffer.slice();
             }
             else {
                 selectedTransformation = TR_NONE;
@@ -415,7 +482,21 @@ function onKeyUp (event) {
             drawObjs();
         }
     }
-    //console.log("onKeyUp("+pressedKey+").");
+    else if (selectedTransformation == TR_ROTATION) {
+        if (pressedKey == KEY_ESC) {
+            if (mouse_button_pressed == MOUSE_LEFT) {
+                console.log("Rotation Transformation aborted!");
+                objectDescriptions[selectedObject][TR_MATRIX] = transformationBuffer.slice();
+            }
+            else {
+                selectedTransformation = TR_NONE;
+                selectedAxis = AXIS_NONE;
+                selectObject(-1);
+            }
+            drawObjs();
+        }
+    }
+    //console.log("onKeyUp("+event.key+").");
     pressedKey = KEY_NONE;
 }
 
@@ -441,14 +522,25 @@ function onMouseMove (event) {
                 //TODO: rotate camera using quaternions.
             }
             else if (selectedTransformation == TR_SCALE) {
-                if (selectedAxis != AXIS_NONE) {
-                    scaleObject(selectedObject,deltaScreen);
-                }
+                if (selectedAxis == AXIS_X)
+                    scaleObject(selectedObject,1.0+deltaScreen/50,1.0,1.0);
+                else if (selectedAxis == AXIS_Y)
+                    scaleObject(selectedObject,1.0,1.0+deltaScreen/50,1.0);
+                else if (selectedAxis == AXIS_Z)
+                    scaleObject(selectedObject,1.0,1.0,1.0+deltaScreen/50);
             }
             else if (selectedTransformation == TR_TRANSLATION) {
-                if (selectedAxis != AXIS_NONE) {
-                    translateObject(selectedObject,deltaScreen);
-                }
+                if (selectedAxis == AXIS_X)
+                    translateObject(selectedObject,deltaScreen/50,0.0,0.0);
+                else if (selectedAxis == AXIS_Y)
+                    translateObject(selectedObject,0.0,deltaScreen/50,0.0);
+                else if (selectedAxis == AXIS_Z)
+                    translateObject(selectedObject,0.0,0.0,deltaScreen/50);
+            }
+            else if (selectedTransformation == TR_ROTATION) {
+                var deltaX = event.screenX-currentScreenX;
+                var deltaY = event.screenY-currentScreenY;
+                rotateObject(selectedObject,deltaY,deltaX,0.0);
             }
         }
     }
@@ -459,10 +551,13 @@ function onMouseMove (event) {
 function onMouseUp (event) {
     if (mouse_button_pressed == event.button) {
         if (selectedTransformation == TR_SCALE && mouse_button_pressed == MOUSE_LEFT) {
-            scaleBuffer = objectDescriptions[selectedObject][SCALE].slice();
+            transformationBuffer = objectDescriptions[selectedObject][TR_MATRIX].slice();
         }
         if (selectedTransformation == TR_TRANSLATION && mouse_button_pressed == MOUSE_LEFT) {
-            translationBuffer = objectDescriptions[selectedObject][TRANSLATION].slice();
+            transformationBuffer = objectDescriptions[selectedObject][TR_MATRIX].slice();
+        }
+        if (selectedTransformation == TR_ROTATION && mouse_button_pressed == MOUSE_LEFT) {
+            transformationBuffer = objectDescriptions[selectedObject][TR_MATRIX].slice();
         }
         mouse_button_pressed = MOUSE_NONE;
     }
@@ -536,33 +631,13 @@ function drawObjs() {
     colorsArray = [];
     numVertices = 0;
     var objDescription;
-    var objectScale, objectTranslation, objectRotation;
-    var objScaleMatrix, objTranslationMatrix, objRotationMatrix;
+    var objTransformationMatrix;
     var objectCounter = 0;
     objectDescriptions.forEach(function(objectDescription){
         var objDescription = objectDescription.slice();
-        // rotation transformation
-        objectRotation = objectDescription[ROTATION];
-        if (objectRotation != (0.0,0.0,0.0)) {
-            objRotationMatrix = rotate(objectRotation[0],[1,0,0]);
-            objDescription[VERTICES_LIST] = applyTransformationTo(objRotationMatrix,objDescription[VERTICES_LIST]);
-            objRotationMatrix = rotate(objectRotation[1],[0,1,0]);
-            objDescription[VERTICES_LIST] = applyTransformationTo(objRotationMatrix,objDescription[VERTICES_LIST]);
-            objRotationMatrix = rotate(objectRotation[2],[0,0,1]);
-            objDescription[VERTICES_LIST] = applyTransformationTo(objRotationMatrix,objDescription[VERTICES_LIST]);
-        }
-        // scale transformation
-        objectScale = objectDescription[SCALE];
-        if (objectScale != (1.0,1.0,1.0)) {
-            objScaleMatrix = scale(objectScale[0],objectScale[1],objectScale[2]);
-            objDescription[VERTICES_LIST] = applyTransformationTo(objScaleMatrix,objDescription[VERTICES_LIST]);
-        }
-        // translation transformation
-        objectTranslation = objectDescription[TRANSLATION];
-        if (objectTranslation != (0.0,0.0,0.0)) {
-            objTranslationMatrix = translate(objectTranslation[0],objectTranslation[1],objectTranslation[2]);
-            objDescription[VERTICES_LIST] = applyTransformationTo(objTranslationMatrix,objDescription[VERTICES_LIST]);
-        }
+        // apply transformations
+        objTransformationMatrix = objectDescription[TR_MATRIX];
+        objDescription[VERTICES_LIST] = applyTransformationTo(objTransformationMatrix,objDescription[VERTICES_LIST]);
         // draw object
         if (objectCounter != selectedObject)
             drawObj(objDescription,defaultColor);
@@ -635,6 +710,7 @@ window.onload = function init() {
     document.getElementById("ProjectionMode").onchange = function(){setProjectionMode(projectionModeSelector)};
     document.getElementById("ShadingMode").onchange = function(){drawObjs()};
 
+    filesInput = document.getElementById('files');
     document.getElementById('files').onchange = function (evt) {
         // load OBJ file and display
         var file = evt.target.files[0];
@@ -652,12 +728,8 @@ window.onload = function init() {
                     shadingModeSelector.removeChild(shadingModeSelector[0]);
                     console.log("File does not have normal vertices!");
                 }
-                var objectScale = [1.0,1.0,1.0];
-                objectDescription.push(objectScale);
-                var objectTranslation = [translateFactor,translateFactor+=0.2,0.0];
-                objectDescription.push(objectTranslation);
-                var objectRotation = [0.0,0.0,0.0];
-                objectDescription.push(objectRotation);
+                var transformationMatrix = mat4();
+                objectDescription.push(transformationMatrix);
                 drawObj(objectDescription,defaultColor);
                 objectDescriptions.push(objectDescription);
             }
