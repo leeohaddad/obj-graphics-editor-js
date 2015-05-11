@@ -77,6 +77,7 @@ var SMOOTH_NORMALS_LIST = 3;
 var SMOOTH_FACE_DEFINITIONS = 4;
 var FILE_HAS_NORMALS = 5;
 var TR_MATRIX = 6;
+var TRANSLATION_LOG = 7;
 var TR_NONE = -1;
 var TR_SCALE = 0;
 var TR_TRANSLATION = 1;
@@ -127,7 +128,6 @@ var selectedTransformation = TR_NONE;
 var selectedAxis = AXIS_NONE;
 var pressedKey = KEY_NONE;
 var transformationBuffer = mat4();
-var translationLogMatrix = mat4();
 var filesInput;
 
 // generate a quadrilateral with triangles
@@ -325,13 +325,14 @@ function deleteObject(id) {
 
 function scaleObject(id, factorX, factorY, factorZ) {
     var currentTransformation = objectDescriptions[id][TR_MATRIX];
+    var translationLog = objectDescriptions[id][TRANSLATION_LOG];
     if (factorX==0) return;
     if (factorY==0) return;
     if (factorZ==0) return;
-    currentTransformation = mult(inverseTranslation(translationLogMatrix),currentTransformation);
+    currentTransformation = mult(inverseTranslation(translationLog),currentTransformation);
     var scaleMatrix = scale(factorX,factorY,factorZ);
     currentTransformation = mult(scaleMatrix,currentTransformation);
-    currentTransformation = mult(translationLogMatrix,currentTransformation);
+    currentTransformation = mult(translationLog,currentTransformation);
     objectDescriptions[id][TR_MATRIX] = currentTransformation;
     drawObjs();
 }
@@ -339,7 +340,8 @@ function scaleObject(id, factorX, factorY, factorZ) {
 function translateObject(id, factorX, factorY, factorZ) {
     var currentTransformation = objectDescriptions[id][TR_MATRIX];
     var translationMatrix = translate(factorX,factorY,factorZ);
-    translationLogMatrix = mult(translationMatrix,translationLogMatrix);
+    var translationLog = objectDescriptions[id][TRANSLATION_LOG];
+    objectDescriptions[id][TRANSLATION_LOG] = mult(translationMatrix,translationLog);
     currentTransformation = mult(translationMatrix,currentTransformation);
     objectDescriptions[id][TR_MATRIX] = currentTransformation;
     drawObjs();
@@ -357,7 +359,8 @@ function inverseTranslation(translationMatrix) {
 //TODO: change logic to world space rotations
 function rotateObject(id, factorX, factorY, factorZ) {
     var currentTransformation = objectDescriptions[id][TR_MATRIX];
-    currentTransformation = mult(inverseTranslation(translationLogMatrix),currentTransformation);
+    var translationLog = objectDescriptions[id][TRANSLATION_LOG];
+    currentTransformation = mult(inverseTranslation(translationLog),currentTransformation);
     if (factorX != 0.0) {
         var rotationMatrixX = rotateWithQuaternion(factorX,[1,0,0]);
         currentTransformation = mult(rotationMatrixX,currentTransformation);
@@ -370,7 +373,7 @@ function rotateObject(id, factorX, factorY, factorZ) {
         var rotationMatrixZ = rotateWithQuaternion(factorZ,[0,0,1]);
         currentTransformation = mult(rotationMatrixZ,currentTransformation);
     }
-    currentTransformation = mult(translationLogMatrix,currentTransformation);
+    currentTransformation = mult(translationLog,currentTransformation);
     objectDescriptions[id][TR_MATRIX] = currentTransformation;
     drawObjs();
 }
@@ -754,6 +757,8 @@ window.onload = function init() {
                 }
                 var transformationMatrix = mat4();
                 objectDescription.push(transformationMatrix);
+                var translationLog = mat4();
+                objectDescription.push(translationLog);
                 drawObj(objectDescription,defaultColor);
                 objectDescriptions.push(objectDescription);
             }
