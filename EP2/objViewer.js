@@ -336,15 +336,15 @@ function translateObject(id, factorX, factorY, factorZ) {
 function rotateObject(id, factorX, factorY, factorZ) {
     var currentTransformation = objectDescriptions[id][TR_MATRIX];
     if (factorX != 0.0) {
-        var rotationMatrixX = rotate(factorX,[1,0,0]);
+        var rotationMatrixX = rotateWithQuaternion(factorX,[1,0,0]);
         currentTransformation = mult(rotationMatrixX,currentTransformation);
     }
     if (factorY != 0.0) {
-        var rotationMatrixY = rotate(factorY,[0,1,0]);
+        var rotationMatrixY = rotateWithQuaternion(factorY,[0,1,0]);
         currentTransformation = mult(rotationMatrixY,currentTransformation);
         }
     if (factorZ != 0.0) {
-        var rotationMatrixZ = rotate(factorZ,[0,0,1]);
+        var rotationMatrixZ = rotateWithQuaternion(factorZ,[0,0,1]);
         currentTransformation = mult(rotationMatrixZ,currentTransformation);
     }
     objectDescriptions[id][TR_MATRIX] = currentTransformation;
@@ -381,10 +381,10 @@ function quaternionRotationMatrix (quaternion) {
     return result;
 }
 
-function rotateWithQuat (vertices, angle, axis) {
-    var q = quaternion(angle,axis);
+function rotateWithQuaternion (angle, axis) {
+    var q = quaternion(-angle,axis);
     var rotationMatrix = quaternionRotationMatrix(q);
-    return applyTransformationTo(rotationMatrix,vertices);
+    return rotationMatrix;
 }
 
 function onKeyDown (event) {
