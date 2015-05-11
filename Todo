@@ -8,14 +8,13 @@ Rastreador de Implementação:
     -> Implementar a transformação de Escala: implementado completamente.
     -> Implementar a transformação de Translação: implementado completamente.
     -> Implementar a transformação de Rotação: implementado completamente.
-    -> Possibilitar as rotações e zoom da câmera através de trackball virtual: implementado parcialmente (***).
+    -> Possibilitar as rotações e zoom da câmera através de trackball virtual: implementado completamente.
     -> Controlar os planos ​near ​e ​far ​do volume de visualização: não implementado.
  - Funcionalidades complementares:
     -> Projeção perspectiva: implementado completamente.
     -> Remoção de objeto da cena: implementado completamente.
 
 (*): A seleção do objeto está implementada através de um botão e não do SHIFT+click mas o objeto está sendo ressaltado corretamente (através de mudança de cor).
-(**): Por enquanto a rotação da câmera não está implementada, mas o zoom da câmera está.
 
 Consolidação de transformações e cancelamento de seleção:
  - Na parte de transformações, um trecho do enunciado do EP ficou confuso para mim:

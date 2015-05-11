@@ -39,7 +39,7 @@ var materialShininess = 100.0;
 var modelViewMatrix, projectionMatrix;
 var modelViewMatrixLoc, projectionMatrixLoc;
 
-//var ctm;
+// var ctm;
 var ambientColor, diffuseColor, specularColor;
 
 var xAxis = 0;
@@ -114,7 +114,6 @@ var objectDescriptions = [];
 var fileHasNormals;
 var shadingModeSelector;
 var scaleFactor = 1.0;
-var translateFactor = 0.0; //TODO: removeme (from here and from obj.onload)
 var loadedObj = false;
 var projectionModeSelector;
 var perspective_view = true;
@@ -128,6 +127,7 @@ var selectedTransformation = TR_NONE;
 var selectedAxis = AXIS_NONE;
 var pressedKey = KEY_NONE;
 var transformationBuffer = mat4();
+var cameraRotation = mat4();
 var filesInput;
 
 // generate a quadrilateral with triangles
@@ -356,7 +356,6 @@ function inverseTranslation(translationMatrix) {
     return inverseTranslationMatrix;
 }
 
-//TODO: change logic to world space rotations
 function rotateObject(id, factorX, factorY, factorZ) {
     var currentTransformation = objectDescriptions[id][TR_MATRIX];
     var translationLog = objectDescriptions[id][TRANSLATION_LOG];
@@ -523,7 +522,6 @@ function onKeyUp(event) {
             drawObjs();
         }
     }
-    //console.log("onKeyUp("+event.key+").");
     pressedKey = KEY_NONE;
 }
 
@@ -546,7 +544,12 @@ function onMouseMove(event) {
         {
             var deltaScreen = (event.screenX-currentScreenX)+(currentScreenY-event.screenY);
             if (selectedTransformation == TR_NONE) {
-                //TODO: rotate camera using quaternions.
+                var deltaX = event.screenX-currentScreenX;
+                var deltaY = event.screenY-currentScreenY;
+                var rotationMatrix = rotateWithQuaternion(deltaY, [1,0,0]);
+                cameraRotation = mult(rotationMatrix,cameraRotation);
+                var rotationMatrix = rotateWithQuaternion(deltaX, [0,1,0]);
+                cameraRotation = mult(rotationMatrix,cameraRotation);
             }
             else if (selectedTransformation == TR_SCALE) {
                 if (selectedAxis == AXIS_X)
@@ -576,6 +579,7 @@ function onMouseMove(event) {
 }
 
 function onMouseUp(event) {
+    //TODO: if SHIFT+click, cast ray to select object.
     if (mouse_button_pressed == event.button) {
         if (selectedTransformation == TR_SCALE && mouse_button_pressed == MOUSE_LEFT) {
             transformationBuffer = copyMat4(objectDescriptions[selectedObject][TR_MATRIX]);
@@ -604,6 +608,7 @@ function toggleObjectSelection ()
 }
 
 function drawObj(parametersArray, color) {
+    //TODO: draw transformation handlers.
     var verticesList = parametersArray[VERTICES_LIST];
     var normalsList = parametersArray[NORMALS_LIST];
     var faceDefinitions = parametersArray[FACE_DEFINITIONS];
@@ -795,9 +800,10 @@ var render = function() {
 
     modelViewMatrix = lookAt(eye, at, up);
 
-    modelViewMatrix = mult(modelViewMatrix, rotate(theta[xAxis], [1, 0, 0] ));
-    modelViewMatrix = mult(modelViewMatrix, rotate(theta[yAxis], [0, 1, 0] ));
-    modelViewMatrix = mult(modelViewMatrix, rotate(theta[zAxis], [0, 0, 1] ));
+    //modelViewMatrix = mult(modelViewMatrix, rotateWithQuaternion(theta[xAxis], [1, 0, 0] ));
+    //modelViewMatrix = mult(modelViewMatrix, rotateWithQuaternion(theta[yAxis], [0, 1, 0] ));
+    //modelViewMatrix = mult(modelViewMatrix, rotateWithQuaternion(theta[zAxis], [0, 0, 1] ));
+    modelViewMatrix = mult(modelViewMatrix, cameraRotation);
     
     if (perspective_view)
         projectionMatrix = perspective(45, canvas.width/canvas.height, znear, zfar);
