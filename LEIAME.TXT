@@ -1,0 +1,83 @@
+Relatório do EP2 de Computação Gráfica
+Professor Marcel Parolin Jackowski
+Aluno Leonardo Haddad Carlos nºUSP 7297361
+
+-> LOG DE IMPLEMENTAÇÃO:
+ - Principais funcionalidades:
+    -> Permitir carregar​ vários objetos (.obj) na mesma cena: implementado completamente. 
+    -> Selecionar um objeto ao fazer SHIFT+click nele e ressaltá­-lo: implementado parcialmente.
+       >> Selecionar um objeto ao fazer SHIFT+click nele:
+          Por estar levando muito tempo pare resolver uma dificuldade que surgiu, adiei essa funcionalidade e acabei 
+          não implementando-a. No lugar a seleção de objetos pode ser feita normalmente usando o botão "Toggle Object 
+          Selection", que alterna a seleção entre os objetos, ou usando a tecla 'n'/'N' (next object) do teclado.
+       >> Ressaltar o objeto selecionado: implementado completamente.
+          Método escolhido: trocar a cor do objeto.
+    -> Mostrar os manipuladores para cada tipo de transformação: não implementado.
+    -> Implementar a transformação de Escala: implementado completamente.
+    -> Implementar a transformação de Translação: implementado completamente.
+    -> Implementar a transformação de Rotação: implementado completamente.
+    -> Possibilitar as rotações e zoom da câmera através de trackball virtual: implementado completamente.
+    -> Controlar os planos ​near ​e ​far ​do volume de visualização: não implementado.
+ - Funcionalidades complementares:
+    -> Projeção perspectiva: implementado completamente.
+    -> Remoção de objeto da cena: implementado completamente.
+
+-> COMO UTILIZAR O SOFTWARE:
+O usuário pode carregar um ou mais arquivos .obj através do botão "Choose File" ou da tecla 'l'/'L' (load) do teclado.
+Já na primeira cena, o usuário pode fazer manipulações na câmera:
+ - Rotacionar a câmera em torno da origem usando o trackball virtual (botão esquerdo do mouse).
+ - Controlar o zoom da câmera usando o trackball virtual (botão direito do mouse).
+ - Alternar entre projeção ortográfica e projeção perspectiva (essa opção descarta alterações feitas no zoom).
+As funcionalidades do sistema relacionadas aos objetos serão ativadas quando ao menos um arquivo .obj for carregado.
+Ao carregar um arquivo obj, o sistema mostrará:
+ - Uma lista dropdown que permite alternar entre os modos de shading.
+    >> Por não se tratar de um requisito do EP2, não me preocupei, nesse momento, em adaptar a verificação de modos de 
+    shading disponíveis para ser feita arquivo a arquivo.
+ - O botão "Toggle Object Selection", que permite fazer seleção de objetos alternando entre os objetos da cena.
+Após selecionar um objeto, o usuário verá esse objeto ressaltado e poderá escolher uma das seguintes operações:
+ - Deletar o arquivo da cena usando as teclas "Delete" e 'x'/'X' do teclado.
+ - Mudar a escala do objeto usando a tecla 's'/'S' do teclado.
+    >> Nesse momento, o usuário deverá usar as teclas 'x'/'X', 'y'/'Y' e 'z'/'Z' para definir o eixo de escala.
+    >> Durante esse processo, o usuário pode apertar a tecla 'ESC' para cancelar a transformação e a seleção do objeto.
+    >> Após definir um eixo, o usuário poderá controlar a escala movimentando o mouse com o botão esquerdo pressionado.
+    >> Alterações serão salvas de forma definitiva quando o botão esquerdo do mouse for solto.
+    >> Antes de soltar o botão esquerdo do mouse, o usuário pode apertar a tecla 'ESC' para descartar a transformação.
+ - Mudar a posição (transladar) do objeto usando a tecla 't'/'T' do teclado.
+    >> Nesse momento, o usuário deverá usar as teclas 'x'/'X', 'y'/'Y' e 'z'/'Z' para definir o eixo de translação.
+    >> Durante esse processo, o usuário pode apertar a tecla 'ESC' para cancelar a transformação e a seleção do objeto.
+    >> Após definir um eixo, o usuário poderá controlar a posição movimentando o mouse com o botão esquerdo pressionado.
+    >> Alterações serão salvas de forma definitiva quando o botão esquerdo do mouse for solto.
+    >> Antes de soltar o botão esquerdo do mouse, o usuário pode apertar a tecla 'ESC' para descartar a transformação.
+ - Mudar a rotação do objeto usando a tecla 'r'/'R' do teclado.
+    >> Durante esse processo, o usuário pode apertar a tecla 'ESC' para cancelar a transformação e a seleção do objeto.
+    >> O usuário poderá controlar a rotação movimentando o mouse com o botão esquerdo pressionado (trackball virtual).
+    >> Alterações serão salvas de forma definitiva quando o botão do mouse for solto.
+    >> Antes de soltar o botão esquerdo do mouse, o usuário pode apertar a tecla 'ESC' para descartar a transformação.
+Há 3 modos de shading suportados pelo software:
+ - Load Normals From .obj File: usa os vetores normais lidos no arquivo OBJ. Opção indisponível caso não haja vetores normais no arquivo.
+ - Calculate Smooth Shading: usa os vetores normais calculados pelo software para criar tonalização suave.
+ - Calculate Flat Shading: usa os vetores normais calculados pelo software para criar tonalização facetada.
+
+-> OBSERVAÇÕES ADICIONAIS:
+ Consolidação de transformações e cancelamento de seleção:
+  - Na parte de transformações, um trecho do enunciado do EP ficou confuso para mim:
+  - "Quando o usuário soltar o botão esquerdo do mouse, a transformação será aplicada definitivamente.".
+  - Esse trecho dá a entender que as transformações não devem ser aplicadas enquanto o usuário está manipulando-as.
+  - Porém, achei que isso deixaria meu software menos intuitivo, pois limitaria o feedback visual do usuário.
+  - Para deixar a funcionalidade melhor, imlementei da seguinte forma:
+  - As transformações são aplicadas a todo momento, para que o usuário possa ver o resultado de sua transformação, porém, enquanto o botão esquerdo ainda estiver pressionado, o usuário pode apertar a tecla ESC para cancelar a transformação e retornar o objeto ao seu estado original.
+  - Se o usuário pressionar a tecla ESC uma vez enquanto está fazendo uma transformação não consolidada (com o botão esquerdo do mouse pressionado), o software irá apenas cancelar a transformação, continuando no modo de edição, para que o usuário possa tentar fazer a transformação novamente sem precisar entrar no modo de edição de novo.
+  - Nesse caso, para sair do modo de edição e cancelar a seleção, o usuário deverá apertar a tecla ESC mais uma vez.
+  - Caso o usuário aperte a tecla ESC sem estar no meio de uma transformação não consolidada, o software cancelará o modo de edĩção e a seleção sem a necessidade de apertar a tecla ESC pela segunda vez.
+
+-> MUDANÇAS NO ARQUIVO MV.js:
+O arquivo MV.js foi utilizado para realizar as operações com matrizes e vetores, mas seu conteúdo precisou ser levemente alterado.
+ - mult()
+A primeira mudança ocorreu na função mult(), pois ela estava incompleta. A função foi alterada para suportar produto entre matriz e vetor.
+A função, no entando, continua incompleta, dado que eu só implementei as funcionalidades necessárias para o EP.
+Produto de matrizes e produto entre vetor e matriz, por exemplo, não foram implementados.
+ - scale()
+A segunda mudança ocorreu na função scale que recebe duas variáveis.
+Todas as vezes que eu tentei chamar a função scale de três parâmetros, a função scale de dois parâmetros interceptou minha chamada.
+Ao interceptar a chamada, a função scale de dois parâmetros tentava executar seu próprio código e lançava um erro no segundo parâmetro, por não ser um array.
+Para corrigir esse conflito, eu mudei o nome da função scale de dois parâmetros para vectorScale, deixando o caminho livre para a função scale de três parâmetros.

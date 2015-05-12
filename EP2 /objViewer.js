@@ -579,8 +579,16 @@ function onMouseMove(event) {
 }
 
 function onMouseUp(event) {
-    //TODO: if SHIFT+click, cast ray to select object.
     if (mouse_button_pressed == event.button) {
+        if (pressedKey == KEY_SHIFT && mouse_button_pressed == MOUSE_LEFT) {
+            //TODO: if SHIFT+click, cast ray to select object.
+            var rect = canvas.getBoundingClientRect();
+            var xInCanvas = event.pageX-rect.left;
+            var yInCanvas = event.pageY-rect.top;
+            console.log("SHIFT+click ("+xInCanvas+","+yInCanvas+")");
+            console.log("Canvas Size: ("+canvas.width+","+canvas.height+")");
+            // how to get correct canvas size (to convert page coordinates to canvas coordinates)?
+        }
         if (selectedTransformation == TR_SCALE && mouse_button_pressed == MOUSE_LEFT) {
             transformationBuffer = copyMat4(objectDescriptions[selectedObject][TR_MATRIX]);
         }
